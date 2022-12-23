@@ -46,7 +46,7 @@ class ContainerManager(QObject):
 
     def __init__(self, application: "CuraApplication") -> None:
         if ContainerManager.__instance is not None:
-            raise RuntimeError("Try to create singleton '%s' more than once" % self.__class__.__name__)
+            raise RuntimeError(f"Try to create singleton '{self.__class__.__name__}' more than once")
         try:
             super().__init__(parent = application)
         except TypeError:
@@ -67,9 +67,7 @@ class ContainerManager(QObject):
         while entries:
             entry = entries.pop(0)
             result = result.get(entry, {})
-        if not result:
-            return ""
-        return str(result)
+        return str(result) if result else ""
 
     @pyqtSlot("QVariant", str, str)
     def setContainerMetaDataEntry(self, container_node: "ContainerNode", entry_name: str, entry_value: str) -> bool:
@@ -149,11 +147,12 @@ class ContainerManager(QObject):
         if not self._container_name_filters:
             self._updateContainerNameFilters()
 
-        filters = []
-        for filter_string, entry in self._container_name_filters.items():
-            if not type_name or entry["type"] == type_name:
-                filters.append(filter_string)
-
+        filters = [
+            filter_string
+            for filter_string, entry in self._container_name_filters.items()
+            if not type_name or entry["type"] == type_name
+        ]
+        
         filters.append("All Files (*)")
         return filters
 
@@ -202,12 +201,11 @@ class ContainerManager(QObject):
         else:
             file_url += "." + mime_type.preferredSuffix
 
-        if not Platform.isWindows():
-            if os.path.exists(file_url):
-                result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
-                                              catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_url))
-                if result == QMessageBox.StandardButton.No:
-                    return {"status": "cancelled", "message": "User cancelled"}
+        if not Platform.isWindows() and os.path.exists(file_url):
+            result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
+                                          catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_url))
+            if result == QMessageBox.StandardButton.No:
+                return {"status": "cancelled", "message": "User cancelled"}
 
         try:
             contents = container.serialize()
@@ -415,8 +413,7 @@ class ContainerManager(QObject):
 
             serialize_type = ""
             try:
-                plugin_metadata = plugin_registry.getMetaData(plugin_id)
-                if plugin_metadata:
+                if plugin_metadata := plugin_registry.getMetaData(plugin_id):
                     serialize_type = plugin_metadata["settings_container"]["type"]
                 else:
                     continue

@@ -61,7 +61,7 @@ class SettingOverrideDecorator(SceneNodeDecorator):
             self._updateNextStack()
 
     def _generateUniqueName(self):
-        return "SettingOverrideInstanceContainer-%s" % uuid.uuid1()
+        return f"SettingOverrideInstanceContainer-{uuid.uuid1()}"
 
     def __deepcopy__(self, memo):
         deep_copy = SettingOverrideDecorator(force_update = False)
@@ -105,12 +105,12 @@ class SettingOverrideDecorator(SceneNodeDecorator):
 
         # for support_meshes, always use the support_extruder
         if self._is_support_mesh:
-            global_container_stack = Application.getInstance().getGlobalContainerStack()
-            if global_container_stack:
+            if (global_container_stack := Application.getInstance().getGlobalContainerStack()):
                 return str(global_container_stack.getProperty("support_extruder_nr", "value"))
 
-        containers = ContainerRegistry.getInstance().findContainers(id = self.getActiveExtruder())
-        if containers:
+        if containers := ContainerRegistry.getInstance().findContainers(
+            id=self.getActiveExtruder()
+        ):
             container_stack = containers[0]
             return container_stack.getMetaDataEntry("position", default=None)
 
@@ -175,8 +175,9 @@ class SettingOverrideDecorator(SceneNodeDecorator):
         kept up to date.
         """
         if self._extruder_stack:
-            extruder_stack = ContainerRegistry.getInstance().findContainerStacks(id = self._extruder_stack)
-            if extruder_stack:
+            if extruder_stack := ContainerRegistry.getInstance().findContainerStacks(
+                id=self._extruder_stack
+            ):
                 if self._stack.getNextStack():
                     old_extruder_stack_id = self._stack.getNextStack().getId()
                 else:

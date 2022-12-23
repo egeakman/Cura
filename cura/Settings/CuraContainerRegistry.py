@@ -86,9 +86,8 @@ class CuraContainerRegistry(ContainerRegistry):
         :return: :type{string} Name that is unique for the specified type and name/id
         """
         new_name = new_name.strip()
-        num_check = re.compile(r"(.*?)\s*#\d+$").match(new_name)
-        if num_check:
-            new_name = num_check.group(1)
+        if num_check := re.compile(r"(.*?)\s*#\d+$").match(new_name):
+            new_name = num_check[1]
         if new_name == "":
             new_name = fallback_name
 
@@ -135,12 +134,11 @@ class CuraContainerRegistry(ContainerRegistry):
             file_name += "." + extension
 
         # On Windows, QML FileDialog properly asks for overwrite confirm, but not on other platforms, so handle those ourself.
-        if not Platform.isWindows():
-            if os.path.exists(file_name):
-                result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
-                                              catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_name))
-                if result == QMessageBox.StandardButton.No:
-                    return False
+        if not Platform.isWindows() and os.path.exists(file_name):
+            result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
+                                          catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_name))
+            if result == QMessageBox.StandardButton.No:
+                return False
 
         profile_writer = self._findProfileWriter(extension, description)
         try:
@@ -397,9 +395,11 @@ class CuraContainerRegistry(ContainerRegistry):
         for profile_name, profile_count in profile_count_by_name.items():
             if profile_count > 1:
                 continue
+            
             # Only one profile found, this should not ever be the case, so that profile needs to be removed!
-            invalid_quality_changes = ContainerRegistry.getInstance().findContainersMetadata(name=profile_name)
-            if invalid_quality_changes:
+            if invalid_quality_changes := ContainerRegistry.getInstance().findContainersMetadata(
+                name=profile_name
+            ):
                 Logger.log("d", "Found an invalid quality_changes profile with the name %s. Going to remove that now", profile_name)
                 self.removeContainer(invalid_quality_changes[0]["id"])
 

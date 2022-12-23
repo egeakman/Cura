@@ -48,7 +48,7 @@ class MachineNameValidator(QObject):
         except AttributeError: #Doesn't support statvfs. Probably because it's not a Unix system.
             filename_max_length = 255 #Assume it's Windows on NTFS.
         escaped_name = urllib.parse.quote_plus(name)
-        current_settings_filename = escaped_name + "_current_settings." + ContainerRegistry.getMimeTypeForContainer(InstanceContainer).preferredSuffix
+        current_settings_filename = f"{escaped_name}_current_settings.{ContainerRegistry.getMimeTypeForContainer(InstanceContainer).preferredSuffix}"
         if len(current_settings_filename) > filename_max_length:
             return QValidator.Invalid
 
@@ -59,10 +59,7 @@ class MachineNameValidator(QObject):
         """Updates the validation state of a machine name text field."""
 
         is_valid = self.validate(new_name)
-        if is_valid == QValidator.Acceptable:
-            self.validation_regex = "^.*$" #Matches anything.
-        else:
-            self.validation_regex = "a^" #Never matches (unless you manage to get "a" before the start of the string... good luck).
+        self.validation_regex = "^.*$" if is_valid == QValidator.Acceptable else "a^"
         self.validationChanged.emit()
 
     @pyqtProperty(str, notify=validationChanged)

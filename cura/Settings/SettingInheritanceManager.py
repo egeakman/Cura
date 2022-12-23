@@ -55,11 +55,11 @@ class SettingInheritanceManager(QObject):
         if not definitions:
             Logger.log("w", "Could not find definition for key [%s]", key)
             return []
-        result = []
-        for key in definitions[0].getAllKeys():
-            if key in self._settings_with_inheritance_warning:
-                result.append(key)
-        return result
+        return [
+            key
+            for key in definitions[0].getAllKeys()
+            if key in self._settings_with_inheritance_warning
+        ]
 
     @pyqtSlot(str, str, result = bool)
     def hasOverrides(self, key: str, extruder_index: str):
@@ -81,10 +81,11 @@ class SettingInheritanceManager(QObject):
             Logger.log("w", "Could not find definition for key [%s] (2)", key)
             return result
 
-        for key in definitions[0].getAllKeys():
-            if self._settingIsOverwritingInheritance(key, extruder_stack):
-                result.append(key)
-
+        result.extend(
+            key
+            for key in definitions[0].getAllKeys()
+            if self._settingIsOverwritingInheritance(key, extruder_stack)
+        )
         return result
 
     @pyqtSlot(str)
@@ -159,9 +160,8 @@ class SettingInheritanceManager(QObject):
         for child in definition.children:
             if child.key in self._settings_with_inheritance_warning:
                 return True
-            if child.children:
-                if self._recursiveCheck(child):
-                    return True
+            if child.children and self._recursiveCheck(child):
+                return True
         return False
 
     @pyqtProperty("QVariantList", notify = settingsWithIntheritanceChanged)
@@ -238,8 +238,7 @@ class SettingInheritanceManager(QObject):
 
         # Check all setting keys that we know of and see if they are overridden.
         for setting_key in self._global_container_stack.getAllKeys():
-            override = self._settingIsOverwritingInheritance(setting_key)
-            if override:
+            if override := self._settingIsOverwritingInheritance(setting_key):
                 self._settings_with_inheritance_warning.append(setting_key)
 
         # Check all the categories if any of their children have their inheritance overwritten.

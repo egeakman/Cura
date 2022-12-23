@@ -153,15 +153,16 @@ class GlobalStack(CuraContainerStack):
         intent_category = "default"
         for extruder in self.extruderList:
             category = extruder.intent.getMetaDataEntry("intent_category", "default")
-            if category != "default" and category != intent_category:
+            if category not in ["default", intent_category]:
                 intent_category = category
         return intent_category
 
     def getBuildplateName(self) -> Optional[str]:
-        name = None
-        if self.variant.getId() != "empty_variant":
-            name = self.variant.getName()
-        return name
+        return (
+            self.variant.getName()
+            if self.variant.getId() != "empty_variant"
+            else None
+        )
 
     @pyqtProperty(str, constant = True)
     def preferred_output_file_formats(self) -> str:
@@ -270,14 +271,11 @@ class GlobalStack(CuraContainerStack):
             # track all settings that are being resolved.
             return False
 
-        if self.hasUserValue(key):
-            # When the user has explicitly set a value, we should ignore any resolve and just return that value.
-            return False
-
-        return True
+        return not self.hasUserValue(key)
 
     def isValid(self) -> bool:
-        """Perform some sanity checks on the global stack
+        """
+        Perform some sanity checks on the global stack
 
         Sanity check for extruders; they must have positions 0 and up to machine_extruder_count - 1
         """
@@ -315,12 +313,9 @@ class GlobalStack(CuraContainerStack):
 
         machine_has_heated_bed = self.getProperty("machine_heated_bed", "value")
 
-        baudrate = 250000
-        if Platform.isLinux():
-            # Linux prefers a baudrate of 115200 here because older versions of
-            # pySerial did not support a baudrate of 250000
-            baudrate = 115200
-
+        # Linux prefers a baudrate of 115200 here because older versions of
+        # pySerial did not support a baudrate of 250000
+        baudrate = 115200 if Platform.isLinux() else 250000
         # If a firmware file is available, it should be specified in the definition for the printer
         hex_file = self.getMetaDataEntry("firmware_file", None)
         if machine_has_heated_bed:

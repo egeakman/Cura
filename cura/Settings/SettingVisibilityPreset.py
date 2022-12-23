@@ -81,10 +81,9 @@ class SettingVisibilityPreset(QObject):
                 continue
 
             settings.append(section)
-            for option in parser[section].keys():
-                settings.append(option)
+            settings.extend(iter(parser[section].keys()))
+            
         self.setSettings(settings)
         self.setId(item_id)
         self.setName(parser["general"]["name"])
         self.setWeight(int(parser["general"]["weight"]))
-

@@ -22,7 +22,7 @@ class OnExitCallbackManager:
 
     def __init__(self, application: "CuraApplication") -> None:
         self._application = application
-        self._on_exit_callback_list = list()  # type: List[Callable]
+        self._on_exit_callback_list = [] # type: List[Callable]
         self._current_callback_idx = 0
         self._is_all_checks_passed = False
 

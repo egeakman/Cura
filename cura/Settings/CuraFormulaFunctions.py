@@ -39,17 +39,18 @@ class CuraFormulaFunctions:
             extruder_position = int(machine_manager.defaultExtruderPosition)
 
         global_stack = machine_manager.activeMachine
+
         try:
             extruder_stack = global_stack.extruderList[int(extruder_position)]
         except IndexError:
             if extruder_position != 0:
-                Logger.log("w", "Value for %s of extruder %s was requested, but that extruder is not available. Returning the result from extruder 0 instead" % (property_key, extruder_position))
+                Logger.log("w", f"Value for {property_key} of extruder {extruder_position} was requested, but that extruder is not available. Returning the result from extruder 0 instead")
                 # This fixes a very specific fringe case; If a profile was created for a custom printer and one of the
                 # extruder settings has been set to non zero and the profile is loaded for a machine that has only a single extruder
                 # it would cause all kinds of issues (and eventually a crash).
                 # See https://github.com/Ultimaker/Cura/issues/5535
                 return self.getValueInExtruder(0, property_key, context)
-            Logger.log("w", "Value for %s of extruder %s was requested, but that extruder is not available. " % (property_key, extruder_position))
+            Logger.log("w", f"Value for {property_key} of extruder {extruder_position} was requested, but that extruder is not available. ")
             return None
 
         value = extruder_stack.getRawProperty(property_key, "value", context = context)
@@ -94,9 +95,7 @@ class CuraFormulaFunctions:
         machine_manager = self._application.getMachineManager()
 
         global_stack = machine_manager.activeMachine
-        resolved_value = global_stack.getProperty(property_key, "value", context = context)
-
-        return resolved_value
+        return global_stack.getProperty(property_key, "value", context = context)
 
     # Gets the default setting value from given extruder position. The default value is what excludes the values in
     # the user_changes container.
@@ -157,7 +156,7 @@ class CuraFormulaFunctions:
         try:
             extruder_stack = global_stack.extruderList[int(extruder_position)]
         except IndexError:
-            Logger.log("w", "Value for %s of extruder %s was requested, but that extruder is not available. " % (property_key, extruder_position))
+            Logger.log("w", f"Value for {property_key} of extruder {extruder_position} was requested, but that extruder is not available. ")
             return None
 
         context = self.createContextForDefaultValueEvaluation(extruder_stack)
