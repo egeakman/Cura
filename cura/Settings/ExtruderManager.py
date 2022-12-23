@@ -32,7 +32,9 @@ class ExtruderManager(QObject):
         """Registers listeners and such to listen to changes to the extruders."""
 
         if ExtruderManager.__instance is not None:
-            raise RuntimeError("Try to create singleton '%s' more than once" % self.__class__.__name__)
+            raise RuntimeError(
+                f"Try to create singleton '{self.__class__.__name__}' more than once"
+            )
 
         super().__init__(parent)
         ExtruderManager.__instance = self
@@ -65,8 +67,7 @@ class ExtruderManager(QObject):
 
     @pyqtProperty(int, notify = extrudersChanged)
     def enabledExtruderCount(self) -> int:
-        global_container_stack = self._application.getGlobalContainerStack()
-        if global_container_stack:
+        if global_container_stack := self._application.getGlobalContainerStack():
             return len([extruder for extruder in global_container_stack.extruderList if parseBool(extruder.getMetaDataEntry("enabled", "True"))])
         return 0
 
@@ -91,13 +92,16 @@ class ExtruderManager(QObject):
     def extruderIds(self) -> Dict[str, str]:
         """Gets a dict with the extruder stack ids with the extruder number as the key."""
 
-        extruder_stack_ids = {}  # type: Dict[str, str]
-
-        global_container_stack = self._application.getGlobalContainerStack()
-        if global_container_stack:
-            extruder_stack_ids = {extruder.getMetaDataEntry("position", ""): extruder.id for extruder in global_container_stack.extruderList}
-
-        return extruder_stack_ids
+        return (
+            {
+                extruder.getMetaDataEntry("position", ""): extruder.id
+                for extruder in global_container_stack.extruderList
+            }
+            if (
+                global_container_stack := self._application.getGlobalContainerStack()
+            )
+            else {}
+        )
 
     @pyqtSlot(int)
     def setActiveExtruderIndex(self, index: int) -> None:
@@ -128,19 +132,18 @@ class ExtruderManager(QObject):
             selected_nodes = []  # type: List["SceneNode"]
             for node in Selection.getAllSelectedObjects():
                 if node.callDecoration("isGroup"):
-                    for grouped_node in BreadthFirstIterator(node):
-                        if grouped_node.callDecoration("isGroup"):
-                            continue
-
-                        selected_nodes.append(grouped_node)
+                    selected_nodes.extend(
+                        grouped_node
+                        for grouped_node in BreadthFirstIterator(node)
+                        if not grouped_node.callDecoration("isGroup")
+                    )
                 else:
                     selected_nodes.append(node)
 
             # Then, figure out which nodes are used by those selected nodes.
             current_extruder_trains = self.getActiveExtruderStacks()
             for node in selected_nodes:
-                extruder = node.callDecoration("getActiveExtruder")
-                if extruder:
+                if extruder := node.callDecoration("getActiveExtruder"):
                     object_extruders.add(extruder)
                 elif current_extruder_trains:
                     object_extruders.add(current_extruder_trains[0].getId())
@@ -166,11 +169,13 @@ class ExtruderManager(QObject):
     def getExtruderStack(self, index) -> Optional["ExtruderStack"]:
         """Get an extruder stack by index"""
 
-        global_container_stack = self._application.getGlobalContainerStack()
-        if global_container_stack:
-            if global_container_stack.getId() in self._extruder_trains:
-                if str(index) in self._extruder_trains[global_container_stack.getId()]:
-                    return self._extruder_trains[global_container_stack.getId()][str(index)]
+        if global_container_stack := self._application.getGlobalContainerStack():
+            if (
+                global_container_stack.getId() in self._extruder_trains
+                and str(index)
+                in self._extruder_trains[global_container_stack.getId()]
+            ):
+                return self._extruder_trains[global_container_stack.getId()][str(index)]
         return None
 
     def getAllExtruderSettings(self, setting_key: str, prop: str) -> List[Any]:
@@ -181,19 +186,14 @@ class ExtruderManager(QObject):
         :return: :type{List} the list of results
         """
 
-        result = []
-
-        for extruder_stack in self.getActiveExtruderStacks():
-            result.append(extruder_stack.getProperty(setting_key, prop))
-
-        return result
+        return [
+            extruder_stack.getProperty(setting_key, prop)
+            for extruder_stack in self.getActiveExtruderStacks()
+        ]
 
     def extruderValueWithDefault(self, value: str) -> str:
         machine_manager = self._application.getMachineManager()
-        if value == "-1":
-            return machine_manager.defaultExtruderPosition
-        else:
-            return value
+        return machine_manager.defaultExtruderPosition if value == "-1" else value
 
     def getUsedExtruderStacks(self) -> List["ExtruderStack"]:
         """Gets the extruder stacks that are actually being used at the moment.
@@ -357,9 +357,7 @@ class ExtruderManager(QObject):
         """
 
         global_stack = self._application.getGlobalContainerStack()
-        if not global_stack:
-            return []
-        return global_stack.extruderList
+        return global_stack.extruderList if global_stack else []
 
     def _globalContainerStackChanged(self) -> None:
         # If the global container changed, the machine changed and might have extruders that were not registered yet
@@ -412,9 +410,9 @@ class ExtruderManager(QObject):
         # At this point, extruder stacks for this machine may not have been loaded yet. In this case, need to look in
         # the container registry as well.
         if not global_stack.extruderList:
-            extruder_trains = container_registry.findContainerStacks(type = "extruder_train",
-                                                                     machine = global_stack.getId())
-            if extruder_trains:
+            if extruder_trains := container_registry.findContainerStacks(
+                type="extruder_train", machine=global_stack.getId()
+            ):
                 for extruder in extruder_trains:
                     if extruder.getMetaDataEntry("position") == "0":
                         extruder_stack_0 = extruder
@@ -433,7 +431,7 @@ class ExtruderManager(QObject):
                 extruder_definition = container_registry.findDefinitionContainers(id = expected_extruder_definition_0_id)[0]
             except IndexError:
                 # It still needs to break, but we want to know what extruder ID made it break.
-                msg = "Unable to find extruder definition with the id [%s]" % expected_extruder_definition_0_id
+                msg = f"Unable to find extruder definition with the id [{expected_extruder_definition_0_id}]"
                 Logger.logException("e", msg)
                 raise IndexError(msg)
             extruder_stack_0.definition = extruder_definition
@@ -462,9 +460,11 @@ class ExtruderManager(QObject):
             return False
 
         active_material_node_qualities = active_material_node.qualities
-        if not active_material_node_qualities:
-            return False
-        return list(active_material_node_qualities.keys())[0] != "empty_quality"
+        return (
+            list(active_material_node_qualities.keys())[0] != "empty_quality"
+            if active_material_node_qualities
+            else False
+        )
 
 
     @pyqtSlot(str, result="QVariant")
@@ -492,9 +492,7 @@ class ExtruderManager(QObject):
         """
 
         global_stack = cast(GlobalStack, cura.CuraApplication.CuraApplication.getInstance().getGlobalContainerStack())
-        resolved_value = global_stack.getProperty(key, "value")
-
-        return resolved_value
+        return global_stack.getProperty(key, "value")
 
     __instance = None   # type: ExtruderManager
 

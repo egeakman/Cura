@@ -131,9 +131,11 @@ class GlobalStacksModel(ListModel):
 
         container_stacks = CuraContainerRegistry.getInstance().findContainerStacks(type = "machine")
         for container_stack in container_stacks:
-            if self._filter_connection_type is not None:  # We want to filter on connection types.
-                if not any((connection_type == self._filter_connection_type for connection_type in container_stack.configuredConnectionTypes)):
-                    continue  # No connection type on this printer matches the filter.
+            if self._filter_connection_type is not None and all(
+                connection_type != self._filter_connection_type
+                for connection_type in container_stack.configuredConnectionTypes
+            ):
+                continue  # No connection type on this printer matches the filter.
 
             has_remote_connection = False
 

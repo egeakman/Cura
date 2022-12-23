@@ -25,8 +25,7 @@ class GenericMaterialsModel(BaseMaterialsModel):
             if container_node.getMetaDataEntry("brand", "unknown").lower() != "generic":
                 continue
 
-            item = self._createMaterialItem(root_material_id, container_node)
-            if item:
+            if item := self._createMaterialItem(root_material_id, container_node):
                 item_list.append(item)
 
         # Sort the item list alphabetically by name

@@ -57,12 +57,14 @@ class Snapshot:
         # determine zoom and look at
         bbox = None
         for node in DepthFirstIterator(root):
-            if not getattr(node, "_outside_buildarea", False):
-                if node.callDecoration("isSliceable") and node.getMeshData() and node.isVisible() and not node.callDecoration("isNonThumbnailVisibleMesh"):
-                    if bbox is None:
-                        bbox = node.getBoundingBox()
-                    else:
-                        bbox = bbox + node.getBoundingBox()
+            if (
+                not getattr(node, "_outside_buildarea", False)
+                and node.callDecoration("isSliceable")
+                and node.getMeshData()
+                and node.isVisible()
+                and not node.callDecoration("isNonThumbnailVisibleMesh")
+            ):
+                bbox = node.getBoundingBox() if bbox is None else bbox + node.getBoundingBox()
         # If there is no bounding box, it means that there is no model in the buildplate
         if bbox is None:
             Logger.log("w", "Unable to create snapshot as we seem to have an empty buildplate")
@@ -117,10 +119,9 @@ class Snapshot:
             min_x, max_x = int((max_x + min_x) / 2 - (max_y - min_y) / 2), int((max_x + min_x) / 2 + (max_y - min_y) / 2)
         cropped_image = pixel_output.copy(min_x, min_y, max_x - min_x, max_y - min_y)
 
-        # Scale it to the correct size
-        scaled_image = cropped_image.scaled(
-            width, height,
-            aspectRatioMode = QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
-            transformMode = QtCore.Qt.TransformationMode.SmoothTransformation)
-
-        return scaled_image
+        return cropped_image.scaled(
+            width,
+            height,
+            aspectRatioMode=QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
+            transformMode=QtCore.Qt.TransformationMode.SmoothTransformation,
+        )

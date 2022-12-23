@@ -48,9 +48,7 @@ class BaseModel:
         :param values: The value of the model, which is usually a dictionary, but may also be already parsed.
         :return: An instance of the model_class given.
         """
-        if isinstance(values, dict):
-            return model_class(**values)
-        return values
+        return model_class(**values) if isinstance(values, dict) else values
 
     @classmethod
     def parseModels(cls, model_class: Type[T], values: List[Union[T, Dict[str, Any]]]) -> List[T]:

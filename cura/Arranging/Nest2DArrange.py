@@ -50,11 +50,15 @@ def findNodePlacement(nodes_to_arrange: List["SceneNode"], build_volume: "BuildV
     for node in nodes_to_arrange:
         hull_polygon = node.callDecoration("getConvexHull")
         if not hull_polygon or hull_polygon.getPoints is None:
-            Logger.log("w", "Object {} cannot be arranged because it has no convex hull.".format(node.getName()))
+            Logger.log(
+                "w",
+                f"Object {node.getName()} cannot be arranged because it has no convex hull.",
+            )
             continue
-        converted_points = []
-        for point in hull_polygon.getPoints():
-            converted_points.append(Point(int(point[0] * factor), int(point[1] * factor)))
+        converted_points = [
+            Point(int(point[0] * factor), int(point[1] * factor))
+            for point in hull_polygon.getPoints()
+        ]
         item = Item(converted_points)
         node_items.append(item)
 
@@ -77,9 +81,10 @@ def findNodePlacement(nodes_to_arrange: List["SceneNode"], build_volume: "BuildV
         clipped_area = area.intersectionConvexHulls(build_plate_polygon)
 
         if clipped_area.getPoints() is not None and len(clipped_area.getPoints()) > 2:  # numpy array has to be explicitly checked against None
-            for point in clipped_area.getPoints():
-                converted_points.append(Point(int(point[0] * factor), int(point[1] * factor)))
-
+            converted_points.extend(
+                Point(int(point[0] * factor), int(point[1] * factor))
+                for point in clipped_area.getPoints()
+            )
             disallowed_area = Item(converted_points)
             disallowed_area.markAsDisallowedAreaInBin(0)
             node_items.append(disallowed_area)
@@ -90,8 +95,10 @@ def findNodePlacement(nodes_to_arrange: List["SceneNode"], build_volume: "BuildV
         hull_polygon = node.callDecoration("getConvexHull")
 
         if hull_polygon is not None and hull_polygon.getPoints() is not None and len(hull_polygon.getPoints()) > 2:  # numpy array has to be explicitly checked against None
-            for point in hull_polygon.getPoints():
-                converted_points.append(Point(int(point[0] * factor), int(point[1] * factor)))
+            converted_points.extend(
+                Point(int(point[0] * factor), int(point[1] * factor))
+                for point in hull_polygon.getPoints()
+            )
             item = Item(converted_points)
             item.markAsFixedInBin(0)
             node_items.append(item)

@@ -155,7 +155,7 @@ class CuraConan(ConanFile):
         cura_version = Version(self.conf.get("user.cura:version", default = self.version, check_type = str))
         pre_tag = f"-{cura_version.pre}" if cura_version.pre else ""
         build_tag = f"+{cura_version.build}" if cura_version.build else ""
-        internal_tag = f"+internal" if self.options.internal else ""
+        internal_tag = "+internal" if self.options.internal else ""
         cura_version = f"{cura_version.major}.{cura_version.minor}.{cura_version.patch}{pre_tag}{build_tag}{internal_tag}"
 
         with open(Path(location, "CuraVersion.py"), "w") as f:
@@ -206,11 +206,16 @@ class CuraConan(ConanFile):
                 self.output.warning(f"Source path for binary {binary['binary']} does not exist")
                 continue
 
-            for bin in src_path.glob(binary["binary"] + "*[.exe|.dll|.so|.dylib|.so.]*"):
-                binaries.append((str(bin), binary["dst"]))
-            for bin in src_path.glob(binary["binary"]):
-                binaries.append((str(bin), binary["dst"]))
-
+            binaries.extend(
+                (str(bin), binary["dst"])
+                for bin in src_path.glob(
+                    binary["binary"] + "*[.exe|.dll|.so|.dylib|.so.]*"
+                )
+            )
+            binaries.extend(
+                (str(bin), binary["dst"])
+                for bin in src_path.glob(binary["binary"])
+            )
         # Make sure all Conan dependencies which are shared are added to the binary list for pyinstaller
         for _, dependency in self.dependencies.host.items():
             for bin_paths in dependency.cpp_info.bindirs:
@@ -276,10 +281,12 @@ class CuraConan(ConanFile):
                 self.requires(req)
 
     def build_requirements(self):
-        if self.options.devtools:
-            if self.settings.os != "Windows" or self.conf.get("tools.microsoft.bash:path", check_type = str):
-                # FIXME: once m4, autoconf, automake are Conan V2 ready use self.win_bash and add gettext as base tool_requirement
-                self.tool_requires("gettext/0.21", force_host_context=True)
+        if self.options.devtools and (
+            self.settings.os != "Windows"
+            or self.conf.get("tools.microsoft.bash:path", check_type=str)
+        ):
+            # FIXME: once m4, autoconf, automake are Conan V2 ready use self.win_bash and add gettext as base tool_requirement
+            self.tool_requires("gettext/0.21", force_host_context=True)
 
     def layout(self):
         self.folders.source = "."
@@ -291,14 +298,16 @@ class CuraConan(ConanFile):
         self.cpp.package.resdirs = ["resources", "plugins", "packaging", "pip_requirements"]  # pip_requirements should be the last item in the list
 
     def build(self):
-        if self.options.devtools:
-            if self.settings.os != "Windows" or self.conf.get("tools.microsoft.bash:path", check_type = str):
-                # FIXME: once m4, autoconf, automake are Conan V2 ready use self.win_bash and add gettext as base tool_requirement
-                cpp_info = self.dependencies["gettext"].cpp_info
-                for po_file in self.source_path.joinpath("resources", "i18n").glob("**/*.po"):
-                    mo_file = self.build_path.joinpath(po_file.with_suffix('.mo').relative_to(self.source_path))
-                    mkdir(self, str(unix_path(self, mo_file.parent)))
-                    self.run(f"{cpp_info.bindirs[0]}/msgfmt {po_file} -o {mo_file} -f", env="conanbuild", ignore_errors=True)
+        if self.options.devtools and (
+            self.settings.os != "Windows"
+            or self.conf.get("tools.microsoft.bash:path", check_type=str)
+        ):
+            # FIXME: once m4, autoconf, automake are Conan V2 ready use self.win_bash and add gettext as base tool_requirement
+            cpp_info = self.dependencies["gettext"].cpp_info
+            for po_file in self.source_path.joinpath("resources", "i18n").glob("**/*.po"):
+                mo_file = self.build_path.joinpath(po_file.with_suffix('.mo').relative_to(self.source_path))
+                mkdir(self, str(unix_path(self, mo_file.parent)))
+                self.run(f"{cpp_info.bindirs[0]}/msgfmt {po_file} -o {mo_file} -f", env="conanbuild", ignore_errors=True)
 
     def generate(self):
         cura_run_envvars = self._cura_run_env.vars(self, scope = "run")
@@ -311,11 +320,19 @@ class CuraConan(ConanFile):
         self._generate_cura_version(Path(self.source_folder, "cura"))
 
         if self.options.devtools:
-            entitlements_file = "'{}'".format(Path(self.source_folder, "packaging", "dmg", "cura.entitlements"))
-            self._generate_pyinstaller_spec(location = self.generators_folder,
-                                            entrypoint_location = "'{}'".format(Path(self.source_folder, self._um_data()["runinfo"]["entrypoint"])).replace("\\", "\\\\"),
-                                            icon_path = "'{}'".format(Path(self.source_folder, "packaging", self._um_data()["pyinstaller"]["icon"][str(self.settings.os)])).replace("\\", "\\\\"),
-                                            entitlements_file = entitlements_file if self.settings.os == "Macos" else "None")
+            entitlements_file = f"""'{Path(self.source_folder, "packaging", "dmg", "cura.entitlements")}'"""
+            self._generate_pyinstaller_spec(
+                location=self.generators_folder,
+                entrypoint_location=f"""'{Path(self.source_folder, self._um_data()["runinfo"]["entrypoint"])}'""".replace(
+                    "\\", "\\\\"
+                ),
+                icon_path=f"""'{Path(self.source_folder, "packaging", self._um_data()["pyinstaller"]["icon"][str(self.settings.os)])}'""".replace(
+                    "\\", "\\\\"
+                ),
+                entitlements_file=entitlements_file
+                if self.settings.os == "Macos"
+                else "None",
+            )
 
             # Update the po files
             if self.settings.os != "Windows" or self.conf.get("tools.microsoft.bash:path", check_type = str):
@@ -437,11 +454,21 @@ echo "CURA_VERSION_FULL={{ cura_version_full }}" >> ${{ env_prefix }}GITHUB_ENV
 
         self._generate_cura_version(Path(self._site_packages, "cura"))
 
-        entitlements_file = "'{}'".format(Path(self.cpp_info.res_paths[2], "dmg", "cura.entitlements"))
-        self._generate_pyinstaller_spec(location = self._base_dir,
-                                        entrypoint_location = "'{}'".format(Path(self.cpp_info.bin_paths[0], self._um_data()["runinfo"]["entrypoint"])).replace("\\", "\\\\"),
-                                        icon_path = "'{}'".format(Path(self.cpp_info.res_paths[2], self._um_data()["pyinstaller"]["icon"][str(self.settings.os)])).replace("\\", "\\\\"),
-                                        entitlements_file = entitlements_file if self.settings.os == "Macos" else "None")
+        entitlements_file = (
+            f"""'{Path(self.cpp_info.res_paths[2], "dmg", "cura.entitlements")}'"""
+        )
+        self._generate_pyinstaller_spec(
+            location=self._base_dir,
+            entrypoint_location=f"""'{Path(self.cpp_info.bin_paths[0], self._um_data()["runinfo"]["entrypoint"])}'""".replace(
+                "\\", "\\\\"
+            ),
+            icon_path=f"""'{Path(self.cpp_info.res_paths[2], self._um_data()["pyinstaller"]["icon"][str(self.settings.os)])}'""".replace(
+                "\\", "\\\\"
+            ),
+            entitlements_file=entitlements_file
+            if self.settings.os == "Macos"
+            else "None",
+        )
 
     def package(self):
         copy(self, "cura_app.py", src = self.source_path, dst = self.package_path.joinpath(self.cpp.package.bindirs[0]))

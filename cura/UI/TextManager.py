@@ -70,13 +70,13 @@ class TextManager(QObject):
                 text_version = Version([15, version.getMinor(), version.getRevision(), version.getPostfixVersion()])
             if version > Version([99, 0, 0]):  # Leave it out altogether if it was originally a non-numbered version.
                 text_version = ""
-            content += ("<h1>" + str(text_version) + "</h1><br>") if text_version else ""
+            content += f"<h1>{str(text_version)}</h1><br>" if text_version else ""
             content += ""
             for change in change_logs_dict[version]:
                 if str(change) != "":
-                    content += "<b>" + str(change) + "</b><br>"
+                    content += f"<b>{str(change)}</b><br>"
                 for line in change_logs_dict[version][change]:
-                    content += str(line) + "<br>"
+                    content += f"{str(line)}<br>"
                 content += "<br>"
 
         return content

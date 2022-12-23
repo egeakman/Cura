@@ -43,9 +43,7 @@ class ExtruderOutputModel(QObject):
     # Does the printer support pre-heating the bed at all
     @pyqtProperty(bool, constant=True)
     def canPreHeatHotends(self) -> bool:
-        if self._printer:
-            return self._printer.canPreHeatHotends
-        return False
+        return self._printer.canPreHeatHotends if self._printer else False
 
     @pyqtProperty(QObject, notify = extruderConfigurationChanged)
     def activeMaterial(self) -> Optional["MaterialOutputModel"]:

@@ -108,7 +108,10 @@ class DigitalFactoryFileModel(ListModel):
                 try:
                     filter_results.append(filter_func(getattr(file, attribute)))
                 except AttributeError:
-                    Logger.log("w", "Attribute '{}' doesn't exist in objects of type '{}'".format(attribute, type(file)))
+                    Logger.log(
+                        "w",
+                        f"Attribute '{attribute}' doesn't exist in objects of type '{type(file)}'",
+                    )
             all_filters_met = all(filter_results)
             if all_filters_met:
                 filtered_files_list.append(file)

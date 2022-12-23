@@ -12,14 +12,12 @@ from src.PaginationManager import PaginationManager
 
 @pytest.fixture
 def application():
-    app = MagicMock(spec=CuraApplication, name = "Mocked Cura Application")
-    return app
+    return MagicMock(spec=CuraApplication, name = "Mocked Cura Application")
 
 
 @pytest.fixture
 def pagination_manager():
-    manager = MagicMock(name = "Mocked Pagination Manager")
-    return manager
+    return MagicMock(name = "Mocked Pagination Manager")
 
 
 @pytest.fixture

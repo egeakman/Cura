@@ -80,7 +80,17 @@ class PlatformPhysics:
             # Move it downwards if bottom is above platform
             move_vector = Vector()
 
-            if node.getSetting(SceneNodeSettings.AutoDropDown, app_automatic_drop_down) and not (node.getParent() and node.getParent().callDecoration("isGroup") or node.getParent() != root) and node.isEnabled(): #If an object is grouped, don't move it down
+            if (
+                node.getSetting(
+                    SceneNodeSettings.AutoDropDown, app_automatic_drop_down
+                )
+                and (
+                    not node.getParent()
+                    or not node.getParent().callDecoration("isGroup")
+                )
+                and node.getParent() == root
+                and node.isEnabled()
+            ): #If an object is grouped, don't move it down
                 z_offset = node.callDecoration("getZOffset") if node.getDecorator(ZOffsetDecorator.ZOffsetDecorator) else 0
                 move_vector = move_vector.set(y = -bbox.bottom + z_offset)
 
@@ -123,21 +133,20 @@ class PlatformPhysics:
                     # Continue to check the overlap until we no longer find one.
                     while overlap and current_overlap_checks < self._max_overlap_checks:
                         current_overlap_checks += 1
-                        head_hull = node.callDecoration("getConvexHullHead")
-                        if head_hull:  # One at a time intersection.
+                        if head_hull := node.callDecoration("getConvexHullHead"):
                             overlap = head_hull.translate(move_vector.x, move_vector.z).intersectsPolygon(other_node.callDecoration("getConvexHull"))
-                            if not overlap:
-                                other_head_hull = other_node.callDecoration("getConvexHullHead")
-                                if other_head_hull:
-                                    overlap = node.callDecoration("getConvexHull").translate(move_vector.x, move_vector.z).intersectsPolygon(other_head_hull)
-                                    if overlap:
-                                        # Moving ensured that overlap was still there. Try anew!
-                                        move_vector = move_vector.set(x = move_vector.x + overlap[0] * self._move_factor,
-                                                                      z = move_vector.z + overlap[1] * self._move_factor)
-                            else:
+                            if overlap:
                                 # Moving ensured that overlap was still there. Try anew!
                                 move_vector = move_vector.set(x = move_vector.x + overlap[0] * self._move_factor,
                                                               z = move_vector.z + overlap[1] * self._move_factor)
+                            elif other_head_hull := other_node.callDecoration(
+                                "getConvexHullHead"
+                            ):
+                                overlap = node.callDecoration("getConvexHull").translate(move_vector.x, move_vector.z).intersectsPolygon(other_head_hull)
+                                if overlap:
+                                    # Moving ensured that overlap was still there. Try anew!
+                                    move_vector = move_vector.set(x = move_vector.x + overlap[0] * self._move_factor,
+                                                                  z = move_vector.z + overlap[1] * self._move_factor)
                         else:
                             own_convex_hull = node.callDecoration("getConvexHull")
                             other_convex_hull = other_node.callDecoration("getConvexHull")
@@ -186,9 +195,8 @@ class PlatformPhysics:
                         node.addDecorator(ZOffsetDecorator.ZOffsetDecorator())
 
                     node.callDecoration("setZOffset", node.getBoundingBox().bottom)
-                else:
-                    if node.getDecorator(ZOffsetDecorator.ZOffsetDecorator):
-                        node.removeDecorator(ZOffsetDecorator.ZOffsetDecorator)
+                elif node.getDecorator(ZOffsetDecorator.ZOffsetDecorator):
+                    node.removeDecorator(ZOffsetDecorator.ZOffsetDecorator)
 
         self._enabled = True
         self._onChangeTimerFinished()

@@ -139,19 +139,27 @@ class UploadMaterialsJob(Job):
         """
         response_data = HttpRequestManager.readJSON(reply)
         if response_data is None:
-            Logger.error(f"Invalid response to material upload request. Could not parse JSON data.")
+            Logger.error(
+                "Invalid response to material upload request. Could not parse JSON data."
+            )
             self.failed(UploadMaterialsError(catalog.i18nc("@text:error", "The response from Digital Factory appears to be corrupted.")))
             return
         if "data" not in response_data:
-            Logger.error(f"Invalid response to material upload request: Missing 'data' field that contains the entire response.")
+            Logger.error(
+                "Invalid response to material upload request: Missing 'data' field that contains the entire response."
+            )
             self.failed(UploadMaterialsError(catalog.i18nc("@text:error", "The response from Digital Factory is missing important information.")))
             return
         if "upload_url" not in response_data["data"]:
-            Logger.error(f"Invalid response to material upload request: Missing 'upload_url' field to upload archive to.")
+            Logger.error(
+                "Invalid response to material upload request: Missing 'upload_url' field to upload archive to."
+            )
             self.failed(UploadMaterialsError(catalog.i18nc("@text:error", "The response from Digital Factory is missing important information.")))
             return
         if "material_profile_id" not in response_data["data"]:
-            Logger.error(f"Invalid response to material upload request: Missing 'material_profile_id' to communicate about the materials with the server.")
+            Logger.error(
+                "Invalid response to material upload request: Missing 'material_profile_id' to communicate about the materials with the server."
+            )
             self.failed(UploadMaterialsError(catalog.i18nc("@text:error", "The response from Digital Factory is missing important information.")))
             return
 

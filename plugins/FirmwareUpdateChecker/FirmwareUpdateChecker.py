@@ -43,13 +43,13 @@ class FirmwareUpdateChecker(Extension):
         if action == FirmwareUpdateCheckerMessage.STR_ACTION_DOWNLOAD:
             machine_id = message.getMachineId()
             download_url = message.getDownloadUrl()
-            if download_url is not None:
-                if QDesktopServices.openUrl(QUrl(download_url)):
-                    Logger.log("i", "Redirected browser to {0} to show newly available firmware.".format(download_url))
-                else:
-                    Logger.log("e", "Can't reach URL: {0}".format(download_url))
-            else:
+            if download_url is None:
                 Logger.log("e", "Can't find URL for {0}".format(machine_id))
+
+            elif QDesktopServices.openUrl(QUrl(download_url)):
+                Logger.log("i", "Redirected browser to {0} to show newly available firmware.".format(download_url))
+            else:
+                Logger.log("e", "Can't reach URL: {0}".format(download_url))
 
     def _onContainerAdded(self, container):
         # Only take care when a new GlobalStack was added

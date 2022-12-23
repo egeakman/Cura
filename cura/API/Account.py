@@ -96,14 +96,14 @@ class Account(QObject):
         self._oauth_root = UltimakerCloudConstants.CuraCloudAccountAPIRoot
 
         self._oauth_settings = OAuth2Settings(
-            OAUTH_SERVER_URL= self._oauth_root,
+            OAUTH_SERVER_URL=self._oauth_root,
             CALLBACK_PORT=self._callback_port,
-            CALLBACK_URL="http://localhost:{}/callback".format(self._callback_port),
+            CALLBACK_URL=f"http://localhost:{self._callback_port}/callback",
             CLIENT_ID="um----------------------------ultimaker_cura",
             CLIENT_SCOPES=self.CLIENT_SCOPES,
             AUTH_DATA_PREFERENCE_KEY="general/ultimaker_auth_data",
-            AUTH_SUCCESS_REDIRECT="{}/app/auth-success".format(self._oauth_root),
-            AUTH_FAILED_REDIRECT="{}/app/auth-error".format(self._oauth_root)
+            AUTH_SUCCESS_REDIRECT=f"{self._oauth_root}/app/auth-success",
+            AUTH_FAILED_REDIRECT=f"{self._oauth_root}/app/auth-error",
         )
 
         self._authorization_service = AuthorizationService(self._oauth_settings)
@@ -160,10 +160,11 @@ class Account(QObject):
                 self._last_sync_str = datetime.now().strftime("%d/%m/%Y %H:%M")
                 self.lastSyncDateTimeChanged.emit()
 
-            if self._sync_state != SyncState.SYNCING:
-                # schedule new auto update after syncing completed (for whatever reason)
-                if not self._update_timer.isActive():
-                    self._update_timer.start()
+            if (
+                self._sync_state != SyncState.SYNCING
+                and not self._update_timer.isActive()
+            ):
+                self._update_timer.start()
 
     def setUpdatePackagesAction(self, action: Callable) -> None:
         """ Set the callback which will be invoked when the user clicks the update packages button
@@ -212,9 +213,8 @@ class Account(QObject):
                 self._authorization_service.getUserProfile(self._onProfileChanged)
                 self._setManualSyncEnabled(False)
                 self._sync()
-            else:
-                if self._update_timer.isActive():
-                    self._update_timer.stop()
+            elif self._update_timer.isActive():
+                self._update_timer.stop()
 
     def _onProfileChanged(self, profile: Optional[UserProfile]) -> None:
         self._user_profile = profile
@@ -263,15 +263,11 @@ class Account(QObject):
 
     @pyqtProperty(str, notify = userProfileChanged)
     def userName(self):
-        if not self._user_profile:
-            return ""
-        return self._user_profile.username
+        return self._user_profile.username if self._user_profile else ""
 
     @pyqtProperty(str, notify = userProfileChanged)
     def profileImageUrl(self):
-        if not self._user_profile:
-            return ""
-        return self._user_profile.profile_image_url
+        return self._user_profile.profile_image_url if self._user_profile else ""
 
     @pyqtProperty(str, notify=accessTokenChanged)
     def accessToken(self) -> Optional[str]:
@@ -280,9 +276,7 @@ class Account(QObject):
     @pyqtProperty("QVariantMap", notify = userProfileChanged)
     def userProfile(self) -> Dict[str, Optional[str]]:
         """None if no user is logged in otherwise the logged in  user as a dict containing containing user_id, username and profile_image_url """
-        if not self._user_profile:
-            return {}
-        return self._user_profile.__dict__
+        return self._user_profile.__dict__ if self._user_profile else {}
 
     @pyqtProperty(str, notify=lastSyncDateTimeChanged)
     def lastSyncDateTime(self) -> str:
@@ -356,7 +350,7 @@ class Account(QObject):
 
             try:
                 reply_data = json.loads(bytes(reply.readAll()).decode("UTF-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as e:
+            except (json.JSONDecodeError, ValueError) as e:
                 Logger.logException("e", f"Could not parse response to permission list request: {e}")
                 return
             if "errors" in reply_data:

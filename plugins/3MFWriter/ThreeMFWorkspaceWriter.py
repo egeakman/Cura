@@ -134,7 +134,7 @@ class ThreeMFWorkspaceWriter(WorkspaceWriter):
             if base_file != container.getId():
                 container = ContainerRegistry.getInstance().findContainers(id = base_file)[0]
 
-        file_name = "Cura/%s.%s" % (container.getId(), file_suffix)
+        file_name = f"Cura/{container.getId()}.{file_suffix}"
 
         try:
             if file_name in archive.namelist():

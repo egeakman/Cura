@@ -51,7 +51,7 @@ class FirstStartMachineActionsModel(ListModel):
     @pyqtProperty("QVariantMap", notify = currentActionIndexChanged)
     def currentItem(self) -> Optional[Dict[str, Any]]:
         if self._current_action_index >= self.count:
-            return dict()
+            return {}
         else:
             return self.getItem(self._current_action_index)
 

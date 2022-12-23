@@ -38,7 +38,7 @@ class DriveApiService:
     def getBackups(self, changed: Callable[[List[Dict[str, Any]]], None]) -> None:
         def callback(reply: QNetworkReply, error: Optional["QNetworkReply.NetworkError"] = None) -> None:
             if error is not None:
-                Logger.log("w", "Could not get backups: " + str(error))
+                Logger.log("w", f"Could not get backups: {str(error)}")
                 changed([])
                 return
 

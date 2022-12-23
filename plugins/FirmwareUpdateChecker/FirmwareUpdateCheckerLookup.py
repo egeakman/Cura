@@ -17,9 +17,7 @@ class FirmwareUpdateCheckerLookup:
         # Parse all the needed lookup-tables from the ".json" file(s) in the resources folder.
         self._machine_id = machine_json.get("id")
         self._machine_name = machine_name.lower()  # Lower in-case upper-case chars are added to the original json.
-        self._check_urls = []  # type:List[str]
-        for check_url in machine_json.get("check_urls", []):
-            self._check_urls.append(check_url)
+        self._check_urls = list(machine_json.get("check_urls", []))
         self._redirect_user = machine_json.get("update_url")
 
     def getMachineId(self) -> Optional[int]:

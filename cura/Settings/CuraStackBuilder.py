@@ -104,7 +104,7 @@ class CuraStackBuilder:
             extruder_definition = registry.findDefinitionContainers(id = extruder_definition_id)[0]
         except IndexError:
             # It still needs to break, but we want to know what extruder ID made it break.
-            msg = "Unable to find extruder definition with the id [%s]" % extruder_definition_id
+            msg = f"Unable to find extruder definition with the id [{extruder_definition_id}]"
             Logger.logException("e", msg)
             raise IndexError(msg)
 
@@ -167,10 +167,16 @@ class CuraStackBuilder:
 
         stack.setMetaDataEntry("position", str(position))
 
-        user_container = cls.createUserChangesContainer(new_stack_id + "_user", machine_definition_id, new_stack_id,
-                                                        is_global_stack = False)
+        user_container = cls.createUserChangesContainer(
+            f"{new_stack_id}_user",
+            machine_definition_id,
+            new_stack_id,
+            is_global_stack=False,
+        )
 
-        stack.definitionChanges = cls.createDefinitionChangesContainer(stack, new_stack_id + "_settings")
+        stack.definitionChanges = cls.createDefinitionChangesContainer(
+            stack, f"{new_stack_id}_settings"
+        )
         stack.variant = variant_container
         stack.material = material_container
         stack.quality = quality_container
@@ -218,10 +224,16 @@ class CuraStackBuilder:
         registry = application.getContainerRegistry()
 
         # Create user container
-        user_container = cls.createUserChangesContainer(new_stack_id + "_user", definition.getId(), new_stack_id,
-                                                        is_global_stack = True)
+        user_container = cls.createUserChangesContainer(
+            f"{new_stack_id}_user",
+            definition.getId(),
+            new_stack_id,
+            is_global_stack=True,
+        )
 
-        stack.definitionChanges = cls.createDefinitionChangesContainer(stack, new_stack_id + "_settings")
+        stack.definitionChanges = cls.createDefinitionChangesContainer(
+            stack, f"{new_stack_id}_settings"
+        )
         stack.variant = variant_container
         stack.material = material_container
         stack.quality = quality_container
@@ -281,15 +293,14 @@ class CuraStackBuilder:
         application = CuraApplication.getInstance()
         registry = application.getContainerRegistry()
 
-        abstract_machines = registry.findContainerStacks(id = abstract_machine_id)
-        if abstract_machines:
+        if abstract_machines := registry.findContainerStacks(
+            id=abstract_machine_id
+        ):
             return cast(GlobalStack, abstract_machines[0])
-        definitions = registry.findDefinitionContainers(id=definition_id)
-
-        name = ""
-
-        if definitions:
+        if definitions := registry.findDefinitionContainers(id=definition_id):
             name = definitions[0].getName()
+        else:
+            name = ""
         stack = cls.createMachine(abstract_machine_id, definition_id, show_warning_message=False)
         if not stack:
             return None

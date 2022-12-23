@@ -172,7 +172,7 @@ class MachineErrorChecker(QObject):
 
         self._check_in_progress = True
 
-        for i in range(self._num_keys_to_check_per_update):
+        for _ in range(self._num_keys_to_check_per_update):
             # If there is nothing to check any more, it means there is no error.
             if not self._stacks_and_keys_to_check:
                 # Finish
@@ -192,8 +192,9 @@ class MachineErrorChecker(QObject):
                 # We do need to validate it, because a setting definitions value can be set by a function, which could
                 # be an invalid setting.
                 definition = stack.getSettingDefinition(key)
-                validator_type = SettingDefinition.getValidatorForType(definition.type)
-                if validator_type:
+                if validator_type := SettingDefinition.getValidatorForType(
+                    definition.type
+                ):
                     validator = validator_type(key)
                     validation_state = validator(stack)
             if validation_state in (ValidatorState.Exception, ValidatorState.MaximumError, ValidatorState.MinimumError, ValidatorState.Invalid):
@@ -212,7 +213,7 @@ class MachineErrorChecker(QObject):
             self._has_errors = result
             self.hasErrorUpdated.emit()
             self._machine_manager.stacksValidationChanged.emit()
-        self._keys_to_check = keys_to_recheck if keys_to_recheck else set()
+        self._keys_to_check = keys_to_recheck or set()
         self._need_to_check = False
         self._check_in_progress = False
         self.needToWaitForResultChanged.emit()

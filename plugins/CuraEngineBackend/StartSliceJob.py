@@ -130,8 +130,9 @@ class StartSliceJob(Job):
 
             if validation_state is None:
                 definition = cast(SettingDefinition, stack.getSettingDefinition(changed_setting_key))
-                validator_type = SettingDefinition.getValidatorForType(definition.type)
-                if validator_type:
+                if validator_type := SettingDefinition.getValidatorForType(
+                    definition.type
+                ):
                     validator = validator_type(changed_setting_key)
                     validation_state = validator(stack)
             if validation_state in (
@@ -173,7 +174,7 @@ class StartSliceJob(Job):
 
         # Don't slice if the buildplate or the nozzle type is incompatible with the materials
         if not CuraApplication.getInstance().getMachineManager().variantBuildplateCompatible and \
-                not CuraApplication.getInstance().getMachineManager().variantBuildplateUsable:
+                    not CuraApplication.getInstance().getMachineManager().variantBuildplateUsable:
             self.setResult(StartJobResult.MaterialIncompatible)
             return
 
@@ -181,10 +182,9 @@ class StartSliceJob(Job):
             material = extruder_stack.findContainer({"type": "material"})
             if not extruder_stack.isEnabled:
                 continue
-            if material:
-                if material.getMetaDataEntry("compatible") == False:
-                    self.setResult(StartJobResult.MaterialIncompatible)
-                    return
+            if material and material.getMetaDataEntry("compatible") == False:
+                self.setResult(StartJobResult.MaterialIncompatible)
+                return
 
         # Don't slice if there is a per object setting with an error value.
         for node in DepthFirstIterator(self._scene.getRoot()):
@@ -230,7 +230,7 @@ class StartSliceJob(Job):
                 if temp_list:
                     object_groups.append(temp_list + modifier_mesh_nodes)
                 Job.yieldThread()
-            if len(object_groups) == 0:
+            if not object_groups:
                 Logger.log("w", "No objects suitable for one at a time found, or no correct order found")
         else:
             temp_list = []
@@ -417,7 +417,7 @@ class StartSliceJob(Job):
             return str(fmt.format(value, **settings))
         except:
             Logger.logException("w", "Unable to do token replacement on start/end g-code")
-            return str(value)
+            return value
 
     def _buildExtruderMessage(self, stack: ContainerStack) -> None:
         """Create extruder message from stack"""
@@ -476,7 +476,7 @@ class StartSliceJob(Job):
         start_gcode = re.sub(r";.+?(\n|$)", "\n", start_gcode)
         bed_temperature_settings = ["material_bed_temperature", "material_bed_temperature_layer_0"]
         pattern = r"\{(%s)(,\s?\w+)?\}" % "|".join(bed_temperature_settings) # match {setting} as well as {setting, extruder_nr}
-        settings["material_bed_temp_prepend"] = re.search(pattern, start_gcode) == None
+        settings["material_bed_temp_prepend"] = re.search(pattern, start_gcode) is None
         print_temperature_settings = ["material_print_temperature", "material_print_temperature_layer_0", "default_material_print_temperature", "material_initial_print_temperature", "material_final_print_temperature", "material_standby_temperature", "print_temperature"]
         pattern = r"\{(%s)(,\s?\w+)?\}" % "|".join(print_temperature_settings) # match {setting} as well as {setting, extruder_nr}
         settings["material_print_temp_prepend"] = re.search(pattern, start_gcode) is None
@@ -565,7 +565,7 @@ class StartSliceJob(Job):
         :param relations: list of relation objects that need to be checked.
         """
 
-        for relation in filter(lambda r: r.role == "value" or r.role == "limit_to_extruder", relations):
+        for relation in filter(lambda r: r.role in ["value", "limit_to_extruder"], relations):
             if relation.type == RelationType.RequiresTarget:
                 continue
 

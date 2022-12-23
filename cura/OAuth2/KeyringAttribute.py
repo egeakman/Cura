@@ -37,27 +37,26 @@ class KeyringAttribute:
     Descriptor for attributes that need to be stored in the keyring. With Fallback behaviour to the preference cfg file
     """
     def __get__(self, instance: "BaseModel", owner: type) -> Optional[str]:
-        if self._store_secure:  # type: ignore
-            try:
-                value = keyring.get_password("cura", self._keyring_name)
-                return value if value != "" else None
-            except NoKeyringError:
-                self._store_secure = False
-                Logger.logException("w", "No keyring backend present")
-                return getattr(instance, self._name)
-            except (KeyringLocked, BlockingIOError):
-                self._store_secure = False
-                Logger.log("i", "Access to the keyring was denied.")
-                return getattr(instance, self._name)
-            except UnicodeDecodeError:
-                self._store_secure = False
-                Logger.log("w", "The password retrieved from the keyring cannot be used because it contains characters that cannot be decoded.")
-                return getattr(instance, self._name)
-            except KeyringError:
-                self._store_secure = False
-                Logger.logException("w", "Unknown keyring error.")
-                return getattr(instance, self._name)
-        else:
+        if not self._store_secure:
+            return getattr(instance, self._name)
+        try:
+            value = keyring.get_password("cura", self._keyring_name)
+            return value if value != "" else None
+        except NoKeyringError:
+            self._store_secure = False
+            Logger.logException("w", "No keyring backend present")
+            return getattr(instance, self._name)
+        except (KeyringLocked, BlockingIOError):
+            self._store_secure = False
+            Logger.log("i", "Access to the keyring was denied.")
+            return getattr(instance, self._name)
+        except UnicodeDecodeError:
+            self._store_secure = False
+            Logger.log("w", "The password retrieved from the keyring cannot be used because it contains characters that cannot be decoded.")
+            return getattr(instance, self._name)
+        except KeyringError:
+            self._store_secure = False
+            Logger.logException("w", "Unknown keyring error.")
             return getattr(instance, self._name)
 
     def __set__(self, instance: "BaseModel", value: Optional[str]):
@@ -82,12 +81,12 @@ class KeyringAttribute:
                     self._store_secure = False
                     if self._name not in DONT_EVER_STORE_LOCALLY:
                         setattr(instance, self._name, value)
-                    Logger.log("w", "Keyring failed: {}".format(e))
+                    Logger.log("w", f"Keyring failed: {e}")
         else:
             setattr(instance, self._name, value)
 
     def __set_name__(self, owner: type, name: str):
-        self._name = "_{}".format(name)
+        self._name = f"_{name}"
         self._keyring_name = name
         self._store_secure = False
         try:

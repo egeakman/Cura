@@ -63,14 +63,16 @@ if with_sentry_sdk:
     # Errors to be ignored by Sentry
     ignore_errors = [KeyboardInterrupt, MemoryError]
     try:
-        sentry_sdk.init("https://5034bf0054fb4b889f82896326e79b13@sentry.io/1821564",
-                        before_send = CrashHandler.sentryBeforeSend,
-                        environment = sentry_env,
-                        release = "cura%s" % ApplicationMetadata.CuraVersion,
-                        default_integrations = False,
-                        max_breadcrumbs = 300,
-                        server_name = "cura",
-                        ignore_errors = ignore_errors)
+        sentry_sdk.init(
+            "https://5034bf0054fb4b889f82896326e79b13@sentry.io/1821564",
+            before_send=CrashHandler.sentryBeforeSend,
+            environment=sentry_env,
+            release=f"cura{ApplicationMetadata.CuraVersion}",
+            default_integrations=False,
+            max_breadcrumbs=300,
+            server_name="cura",
+            ignore_errors=ignore_errors,
+        )
     except Exception:
         with_sentry_sdk = False
 
@@ -82,9 +84,9 @@ if not known_args["debug"]:
                 appdata_path = "."
             return os.path.join(appdata_path, CuraAppName)
         elif Platform.isLinux():
-            return os.path.expanduser("~/.local/share/" + CuraAppName)
+            return os.path.expanduser(f"~/.local/share/{CuraAppName}")
         elif Platform.isOSX():
-            return os.path.expanduser("~/Library/Logs/" + CuraAppName)
+            return os.path.expanduser(f"~/Library/Logs/{CuraAppName}")
 
     # Do not redirect stdout and stderr to files if we are running CLI.
     if hasattr(sys, "frozen") and "cli" not in os.path.basename(sys.argv[0]).lower():

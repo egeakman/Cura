@@ -84,12 +84,18 @@ class WhatsNewPagesModel(WelcomePagesModel):
         highest = max(max_image, max_text)
 
         self._subpages = []
-        for n in range(0, highest + 1):
-            self._subpages.append({
-                WhatsNewPagesModel.image_key: None if n not in images else images[n],
-                WhatsNewPagesModel.text_key: None if n not in texts else self._loadText(texts[n])
-            })
-        if len(self._subpages) == 0:
+        self._subpages.extend(
+            {
+                WhatsNewPagesModel.image_key: None
+                if n not in images
+                else images[n],
+                WhatsNewPagesModel.text_key: None
+                if n not in texts
+                else self._loadText(texts[n]),
+            }
+            for n in range(highest + 1)
+        )
+        if not self._subpages:
             self._subpages.append({WhatsNewPagesModel.text_key: "~ There Is Nothing New Under The Sun ~"})
 
     def _getSubpageItem(self, page: int, item: str) -> Optional[str]:
@@ -105,9 +111,11 @@ class WhatsNewPagesModel(WelcomePagesModel):
     @pyqtSlot(int, result = str)
     def getSubpageImageSource(self, page: int) -> str:
         result = self._getSubpageItem(page, WhatsNewPagesModel.image_key)
-        return "file:///" + (result if result else Resources.getPath(Resources.Images, "cura-icon.png"))
+        return "file:///" + (
+            result or Resources.getPath(Resources.Images, "cura-icon.png")
+        )
 
     @pyqtSlot(int, result = str)
     def getSubpageText(self, page: int) -> str:
         result = self._getSubpageItem(page, WhatsNewPagesModel.text_key)
-        return result if result else "* * *"
+        return result or "* * *"

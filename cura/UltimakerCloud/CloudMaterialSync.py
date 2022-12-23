@@ -90,7 +90,7 @@ class CloudMaterialSync(QObject):
         # Show the message only if there are printers that support material export
         container_registry = cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry()
         global_stacks = container_registry.findContainerStacks(type = "machine")
-        if any([stack.supportsMaterialExport for stack in global_stacks]):
+        if any(stack.supportsMaterialExport for stack in global_stacks):
             sync_materials_message.show()
 
     def _onSyncMaterialsMessageActionTriggered(self, sync_message: Message, sync_message_action: str):
@@ -115,8 +115,7 @@ class CloudMaterialSync(QObject):
         for device in devices:
             if device.__class__.__name__ == "RemovableDriveOutputDevice":
                 return QUrl.fromLocalFile(device.getId())
-        else:  # No removable drives? Use local path.
-            return cura_application.getDefaultPath("dialog_material_path")
+        return cura_application.getDefaultPath("dialog_material_path")
 
     @pyqtSlot(QUrl)
     def exportAll(self, file_path: QUrl, notify_progress: Optional["Signal"] = None) -> None:

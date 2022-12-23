@@ -22,4 +22,4 @@ class PaginationMetadata:
         self.__dict__.update(kwargs)
 
     def __str__(self) -> str:
-        return "PaginationMetadata | Total Count: {}, Total Pages: {}".format(self.total_count, self.total_pages)
+        return f"PaginationMetadata | Total Count: {self.total_count}, Total Pages: {self.total_pages}"

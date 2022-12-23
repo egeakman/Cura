@@ -54,8 +54,10 @@ class IntentManager(QObject):
 
         material_node = materials[material_base_file]
         for quality_node in material_node.qualities.values():
-            for intent_node in quality_node.intents.values():
-                intent_metadatas.append(intent_node.getMetadata())
+            intent_metadatas.extend(
+                intent_node.getMetadata()
+                for intent_node in quality_node.intents.values()
+            )
         return intent_metadatas
 
     def intentCategories(self, definition_id: str, nozzle_id: str, material_id: str) -> List[str]:
@@ -68,9 +70,12 @@ class IntentManager(QObject):
         :param material_id: ID of the material.
         :return: A set of intent category names.
         """
-        categories = set()
-        for intent in self.intentMetadatas(definition_id, nozzle_id, material_id):
-            categories.add(intent["intent_category"])
+        categories = {
+            intent["intent_category"]
+            for intent in self.intentMetadatas(
+                definition_id, nozzle_id, material_id
+            )
+        }
         categories.add("default") #The "empty" intent is not an actual profile specific to the configuration but we do want it to appear in the categories list.
         return list(categories)
 
@@ -183,8 +188,9 @@ class IntentManager(QObject):
             for id, intent_node in quality_node.intents.items():
                 if intent_node.intent_category == intent_category:
                     intent_id = id
-            intent = application.getContainerRegistry().findContainers(id = intent_id)
-            if intent:
+            if intent := application.getContainerRegistry().findContainers(
+                id=intent_id
+            ):
                 extruder_stack.intent = intent[0]
             else:
                 extruder_stack.intent = self.getDefaultIntent()

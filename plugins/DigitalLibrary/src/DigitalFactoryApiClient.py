@@ -124,7 +124,7 @@ class DigitalFactoryApiClient:
         :param on_finished: The function to be called after the result is parsed.
         :param failed: The function to be called if the request fails.
         """
-        url = "{}/projects/{}".format(self.CURA_API_ROOT, library_project_id)
+        url = f"{self.CURA_API_ROOT}/projects/{library_project_id}"
 
         self._http.get(url,
                        scope = self._scope,
@@ -194,7 +194,7 @@ class DigitalFactoryApiClient:
         :param failed: The function to be called if the request fails.
         """
 
-        url = "{}/projects/{}/files".format(self.CURA_API_ROOT, library_project_id)
+        url = f"{self.CURA_API_ROOT}/projects/{library_project_id}/files"
         self._http.get(url,
                        scope = self._scope,
                        callback = self._parseCallback(on_finished, DigitalFactoryFileResponse, failed),
@@ -252,7 +252,7 @@ class DigitalFactoryApiClient:
         try:
             response = bytes(reply.readAll()).decode()
             return status_code, json.loads(response)
-        except (UnicodeDecodeError, JSONDecodeError, ValueError) as err:
+        except ValueError as err:
             error = CloudError(code = type(err).__name__, title = str(err), http_code = str(status_code),
                                id = str(time()), http_status = "500")
             Logger.logException("e", "Could not parse the stardust response: %s", error.toDict())
@@ -303,7 +303,7 @@ class DigitalFactoryApiClient:
         :param on_error: The callback in case the request fails.
         """
 
-        url = "{}/files/upload".format(self.CURA_API_ROOT)
+        url = f"{self.CURA_API_ROOT}/files/upload"
         data = json.dumps({"data": request.toDict()}).encode()
 
         self._http.put(url,
@@ -323,7 +323,7 @@ class DigitalFactoryApiClient:
         :param on_error: The callback in case the request fails.
         """
 
-        url = "{}/jobs/upload".format(self.CURA_API_ROOT)
+        url = f"{self.CURA_API_ROOT}/jobs/upload"
         data = json.dumps({"data": request.toDict()}).encode()
 
         self._http.put(url,
@@ -365,9 +365,9 @@ class DigitalFactoryApiClient:
         :param on_finished: The function to be called after the result is parsed.
         :param on_error: The function to be called if anything goes wrong.
         """
-        Logger.log("i", "Attempt to create new DF project '{}'.".format(project_name))
+        Logger.log("i", f"Attempt to create new DF project '{project_name}'.")
 
-        url = "{}/projects".format(self.CURA_API_ROOT)
+        url = f"{self.CURA_API_ROOT}/projects"
         data = json.dumps({"data": {"display_name": project_name}}).encode()
         self._http.put(url,
                        scope = self._scope,

@@ -85,7 +85,7 @@ class FirmwareUpdateCheckerJob(Job):
             # Get headers
             application_name = Application.getInstance().getApplicationName()
             application_version = Application.getInstance().getVersion()
-            self._headers = {"User-Agent": "%s - %s" % (application_name, application_version)}
+            self._headers = {"User-Agent": f"{application_name} - {application_version}"}
 
             # If it is not None, then we compare between the checked_version and the current_version
             machine_id = self._lookups.getMachineId()
@@ -112,7 +112,7 @@ class FirmwareUpdateCheckerJob(Job):
                 # The first time we want to store the current version, the notification will not be shown,
                 # because the new version of Cura will be release before the firmware and we don't want to
                 # notify the user when no new firmware version is available.
-                if checked_version != "" and checked_version != current_version:
+                if checked_version not in ["", current_version]:
                     Logger.log("i", "Showing firmware update message for new version: {version}".format(version = current_version))
                     message = FirmwareUpdateCheckerMessage(machine_id, self._machine_name, current_version,
                                                            self._lookups.getRedirectUserUrl())

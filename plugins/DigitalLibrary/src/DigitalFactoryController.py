@@ -198,7 +198,10 @@ class DigitalFactoryController(QObject):
     def _onGetProjectFailed(self, reply: QNetworkReply, error: QNetworkReply.NetworkError) -> None:
         reply_string = bytes(reply.readAll()).decode()
         self.setHasPreselectedProject(False)
-        Logger.log("w", "Something went wrong while trying to retrieve a the preselected Digital Library project. Error: {}".format(reply_string))
+        Logger.log(
+            "w",
+            f"Something went wrong while trying to retrieve a the preselected Digital Library project. Error: {reply_string}",
+        )
 
     def _onGetProjectsFirstPageFinished(self, df_projects: List[DigitalFactoryProjectResponse]) -> None:
         """
@@ -235,7 +238,10 @@ class DigitalFactoryController(QObject):
         Error function, called whenever the retrieval of projects fails.
         """
         self.setRetrievingProjectsStatus(self.RetrievalStatus.Failed)
-        Logger.log("w", "Failed to retrieve the list of projects from the Digital Library. Error encountered: {}".format(error))
+        Logger.log(
+            "w",
+            f"Failed to retrieve the list of projects from the Digital Library. Error encountered: {error}",
+        )
 
     def getProjectFilesFinished(self, df_files_in_project: List[DigitalFactoryFileResponse]) -> None:
         """
@@ -257,7 +263,9 @@ class DigitalFactoryController(QObject):
         try:
             Logger.warning(f"Failed to retrieve the list of files in project '{self._project_model._projects[self._selected_project_idx]}' from the Digital Library")
         except IndexError:
-            Logger.warning(f"Failed to retrieve the list of files in a project from the Digital Library. And failed to get the project too.")
+            Logger.warning(
+                "Failed to retrieve the list of files in a project from the Digital Library. And failed to get the project too."
+            )
         self.setRetrievingFilesStatus(self.RetrievalStatus.Failed)
 
     @pyqtSlot()
@@ -385,11 +393,14 @@ class DigitalFactoryController(QObject):
         if reply_string:
             reply_dict = json.loads(reply_string)
             if "errors" in reply_dict and len(reply_dict["errors"]) >= 1 and "title" in reply_dict["errors"][0]:
-                self._project_creation_error_text = "Error while creating the new project: {}".format(reply_dict["errors"][0]["title"])
+                self._project_creation_error_text = f'Error while creating the new project: {reply_dict["errors"][0]["title"]}'
         self.projectCreationErrorTextChanged.emit()
 
         self.setCreatingNewProjectStatus(self.RetrievalStatus.Failed)
-        Logger.log("e", "Something went wrong while trying to create a new a project. Error: {}".format(reply_string))
+        Logger.log(
+            "e",
+            f"Something went wrong while trying to create a new a project. Error: {reply_string}",
+        )
 
     def setRetrievingProjectsStatus(self, new_status: RetrievalStatus) -> None:
         """
@@ -467,7 +478,7 @@ class DigitalFactoryController(QObject):
                     try:
                         os.remove(filename_done)
                         to_erase_on_done_set.remove(filename_done)
-                        if len(to_erase_on_done_set) < 1 and os.path.exists(temp_dir):
+                        if not to_erase_on_done_set and os.path.exists(temp_dir):
                             os.rmdir(temp_dir)
                     except (IOError, OSError) as ex:
                         Logger.error("Can't erase temporary (in) {0} because {1}.", temp_dir, str(ex))
@@ -586,7 +597,7 @@ class DigitalFactoryController(QObject):
             Logger.log("e", "No DF Library project is selected.")
             return
 
-        if filename == "":
+        if not filename:
             Logger.log("w", "The file name cannot be empty.")
             getBackwardsCompatibleMessage(
                     text = "Cannot upload file with an empty name to the Digital Library",

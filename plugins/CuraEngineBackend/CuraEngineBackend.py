@@ -306,7 +306,7 @@ class CuraEngineBackend(QObject, Backend):
         application = CuraApplication.getInstance()
         active_build_plate = application.getMultiBuildPlateModel().activeBuildPlate
         build_plate_to_be_sliced = self._build_plates_to_be_sliced.pop(0)
-        Logger.log("d", "Going to slice build plate [%s]!" % build_plate_to_be_sliced)
+        Logger.log("d", f"Going to slice build plate [{build_plate_to_be_sliced}]!")
         num_objects = self._numObjectsPerBuildPlate()
 
         self._stored_layer_data = []
@@ -639,12 +639,10 @@ class CuraEngineBackend(QObject, Backend):
 
     # Check if there's any slicable object in the scene.
     def hasSlicableObject(self) -> bool:
-        has_slicable = False
-        for node in DepthFirstIterator(self._scene.getRoot()):
-            if node.callDecoration("isSliceable"):
-                has_slicable = True
-                break
-        return has_slicable
+        return any(
+            node.callDecoration("isSliceable")
+            for node in DepthFirstIterator(self._scene.getRoot())
+        )
 
     def _clearLayerData(self, build_plate_numbers: Set = None) -> None:
         """Remove old layer data (if any)"""
@@ -653,10 +651,13 @@ class CuraEngineBackend(QObject, Backend):
         self._scene.gcode_dict = {}  # type: ignore
 
         for node in DepthFirstIterator(self._scene.getRoot()):
-            if node.callDecoration("getLayerData"):
-                if not build_plate_numbers or node.callDecoration("getBuildPlateNumber") in build_plate_numbers:
-                    # We can assume that all nodes have a parent as we're looping through the scene (and filter out root)
-                    cast(SceneNode, node.getParent()).removeChild(node)
+            if node.callDecoration("getLayerData") and (
+                not build_plate_numbers
+                or node.callDecoration("getBuildPlateNumber")
+                in build_plate_numbers
+            ):
+                # We can assume that all nodes have a parent as we're looping through the scene (and filter out root)
+                cast(SceneNode, node.getParent()).removeChild(node)
 
     def markSliceAll(self) -> None:
         for build_plate_number in range(CuraApplication.getInstance().getMultiBuildPlateModel().maxBuildPlate + 1):
@@ -858,10 +859,10 @@ class CuraEngineBackend(QObject, Backend):
             material amount per extruder
         """
 
-        material_amounts = []
-        for index in range(message.repeatedMessageCount("materialEstimates")):
-            material_amounts.append(message.getRepeatedMessage("materialEstimates", index).material_amount)
-
+        material_amounts = [
+            message.getRepeatedMessage("materialEstimates", index).material_amount
+            for index in range(message.repeatedMessageCount("materialEstimates"))
+        ]
         times = self._parseMessagePrintTimes(message)
         self.printDurationMessage.emit(self._start_slice_job_build_plate, times, material_amounts)
 
@@ -871,7 +872,7 @@ class CuraEngineBackend(QObject, Backend):
         :param message: The protobuf message containing the print time per feature
         """
 
-        result = {
+        return {
             "inset_0": message.time_inset_0,
             "inset_x": message.time_inset_x,
             "skin": message.time_skin,
@@ -883,9 +884,8 @@ class CuraEngineBackend(QObject, Backend):
             "prime_tower": message.time_prime_tower,
             "travel": message.time_travel,
             "retract": message.time_retract,
-            "none": message.time_none
+            "none": message.time_none,
         }
-        return result
 
     def _onBackendConnected(self) -> None:
         """Called when the back-end connects to the front-end."""
@@ -934,8 +934,7 @@ class CuraEngineBackend(QObject, Backend):
     def _onActiveViewChanged(self) -> None:
         """Called when the user changes the active view mode."""
 
-        view = CuraApplication.getInstance().getController().getActiveView()
-        if view:
+        if view := CuraApplication.getInstance().getController().getActiveView():
             active_build_plate = CuraApplication.getInstance().getMultiBuildPlateModel().activeBuildPlate
             if view.getPluginId() == "SimulationView":  # If switching to layer view, we should process the layers if that hasn't been done yet.
                 self._layer_view_active = True
@@ -957,17 +956,18 @@ class CuraEngineBackend(QObject, Backend):
         We should reset our state and start listening for new connections.
         """
 
-        if not self._restart:
-            if self._process: # type: ignore
-                return_code = self._process.wait()
-                if return_code != 0:
-                    Logger.log("e", f"Backend exited abnormally with return code {return_code}!")
-                    self._slicing_error_message.show()
-                    self.setState(BackendState.Error)
-                    self.stopSlicing()
-                else:
-                    Logger.log("d", "Backend finished slicing. Resetting process and socket.")
-                self._process = None # type: ignore
+        if self._restart:
+            return
+        if self._process: # type: ignore
+            return_code = self._process.wait()
+            if return_code != 0:
+                Logger.log("e", f"Backend exited abnormally with return code {return_code}!")
+                self._slicing_error_message.show()
+                self.setState(BackendState.Error)
+                self.stopSlicing()
+            else:
+                Logger.log("d", "Backend finished slicing. Resetting process and socket.")
+            self._process = None # type: ignore
 
     def _reportBackendError(self, _message_id: str, _action_id: str) -> None:
         """
@@ -1025,8 +1025,7 @@ class CuraEngineBackend(QObject, Backend):
     def _onPreferencesChanged(self, preference: str) -> None:
         if preference != "general/auto_slice":
             return
-        auto_slice = self.determineAutoSlicing()
-        if auto_slice:
+        if auto_slice := self.determineAutoSlicing():
             self._change_timer.start()
 
     def tickle(self) -> None:

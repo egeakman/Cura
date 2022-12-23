@@ -49,7 +49,9 @@ class CuraContainerStack(ContainerStack):
         self._empty_material = cura_empty_instance_containers.empty_material_container #type: InstanceContainer
         self._empty_variant = cura_empty_instance_containers.empty_variant_container #type: InstanceContainer
 
-        self._containers: List[ContainerInterface] = [self._empty_instance_container for i in _ContainerIndexes.IndexTypeMap]
+        self._containers: List[ContainerInterface] = [
+            self._empty_instance_container for _ in _ContainerIndexes.IndexTypeMap
+        ]
         self._containers[_ContainerIndexes.QualityChanges] = self._empty_quality_changes
         self._containers[_ContainerIndexes.Quality] = self._empty_quality
         self._containers[_ContainerIndexes.Material] = self._empty_material
@@ -220,10 +222,11 @@ class CuraContainerStack(ContainerStack):
         if self._containers[_ContainerIndexes.UserChanges].hasProperty(key, "value"):
             return True
 
-        if self._containers[_ContainerIndexes.QualityChanges].hasProperty(key, "value"):
-            return True
-
-        return False
+        return bool(
+            self._containers[_ContainerIndexes.QualityChanges].hasProperty(
+                key, "value"
+            )
+        )
 
     def setProperty(self, key: str, property_name: str, property_value: Any, container: "ContainerInterface" = None, set_from_cache: bool = False) -> None:
         """Set a property of a setting.
@@ -322,16 +325,17 @@ class CuraContainerStack(ContainerStack):
 
             if type_name == "definition":
                 if not container or not isinstance(container, DefinitionContainer):
-                    definition = self.findContainer(container_type = DefinitionContainer)
-                    if not definition:
+                    if definition := self.findContainer(
+                        container_type=DefinitionContainer
+                    ):
+                        new_containers[index] = definition
+                    else:
                         raise InvalidContainerStackError("Stack {id} does not have a definition!".format(id = self.getId()))
 
-                    new_containers[index] = definition
                 continue
 
             if not container or container.getMetaDataEntry("type") != type_name:
-                actual_container = self.findContainer(type = type_name)
-                if actual_container:
+                if actual_container := self.findContainer(type=type_name):
                     new_containers[index] = actual_container
                 else:
                     new_containers[index] = self._empty_instance_container
@@ -343,7 +347,9 @@ class CuraContainerStack(ContainerStack):
         # Make sure that all stacks here have non-empty definition_changes containers.
         if isinstance(new_containers[_ContainerIndexes.DefinitionChanges], type(self._empty_instance_container)):
             from cura.Settings.CuraStackBuilder import CuraStackBuilder
-            CuraStackBuilder.createDefinitionChangesContainer(self, self.getId() + "_settings")
+            CuraStackBuilder.createDefinitionChangesContainer(
+                self, f"{self.getId()}_settings"
+            )
 
         ## TODO; Deserialize the containers.
         return serialized

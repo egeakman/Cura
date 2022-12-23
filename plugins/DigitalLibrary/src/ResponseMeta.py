@@ -21,4 +21,4 @@ class ResponseMeta:
         self.__dict__.update(kwargs)
 
     def __str__(self) -> str:
-        return "Response Meta | {}".format(self.page)
+        return f"Response Meta | {self.page}"

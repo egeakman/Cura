@@ -31,7 +31,7 @@ class ExportFileJob(WriteFileJob):
         super().__init__(file_writer, self.createStream(mode = mode), nodes, mode)
 
         # Determine the filename.
-        self.setFileName("{}.{}".format(job_name, extension))
+        self.setFileName(f"{job_name}.{extension}")
 
     def getOutput(self) -> bytes:
         """Get the job result as bytes as that is what we need to upload to the Digital Factory Library."""

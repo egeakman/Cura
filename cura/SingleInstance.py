@@ -81,7 +81,7 @@ class SingleInstance:
 
     def __readCommands(self, connection: QLocalSocket) -> None:
         line = connection.readLine()
-        while len(line) != 0:    # There is also a .canReadLine()
+        while len(line) != 0:# There is also a .canReadLine()
             try:
                 payload = json.loads(str(line, encoding = "ascii").strip())
                 command = payload["command"]
@@ -90,11 +90,9 @@ class SingleInstance:
                 if command == "clear-all":
                     self._application.callLater(lambda: self._application.deleteAll())
 
-                # Command: Load a model or project file
                 elif command == "open":
                     self._application.callLater(lambda f = payload["filePath"]: self._application._openFile(f))
 
-                # Command: Activate the window and bring it to the top.
                 elif command == "focus":
                     # Operating systems these days prevent windows from moving around by themselves.
                     # 'alert' or flashing the icon in the taskbar is the best thing we do now.
@@ -102,12 +100,11 @@ class SingleInstance:
                     if main_window is not None:
                         self._application.callLater(lambda: main_window.alert(0)) # type: ignore # I don't know why MyPy complains here
 
-                # Command: Close the socket connection. We're done.
                 elif command == "close-connection":
                     connection.close()
 
                 else:
-                    Logger.log("w", "Received an unrecognized command " + str(command))
+                    Logger.log("w", f"Received an unrecognized command {str(command)}")
             except json.decoder.JSONDecodeError as ex:
                 Logger.log("w", "Unable to parse JSON command '%s': %s", line, repr(ex))
             line = connection.readLine()

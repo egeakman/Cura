@@ -32,7 +32,7 @@ class CuraPackageManager(PackageManager):
 
     def _updateLocalPackages(self) -> None:
         self._local_packages = self.getAllLocalPackages()
-        self._local_packages_ids = set(pkg["package_id"] for pkg in self._local_packages)
+        self._local_packages_ids = {pkg["package_id"] for pkg in self._local_packages}
 
     @property
     def local_packages(self) -> List[Dict[str, Any]]:
@@ -71,7 +71,10 @@ class CuraPackageManager(PackageManager):
         for path in Resources.getSecureSearchPaths():
             # Secure search paths are install directory paths, if a material is in here it must be bundled.
 
-            paths = [Path(p) for p in glob.glob(path + '/**/*.xml.fdm_material', recursive=True)]
+            paths = [
+                Path(p)
+                for p in glob.glob(f'{path}/**/*.xml.fdm_material', recursive=True)
+            ]
             for material in paths:
                 if material.name == file_name:
                     Logger.info(f"Found bundled material: {material.name}. Located in path: {str(material)}")
@@ -107,7 +110,9 @@ class CuraPackageManager(PackageManager):
                     if guid == parsed_guid:
                         return package_id
 
-        Logger.error("Could not find package_id for file: {} with GUID: {} ".format(file_name, guid))
+        Logger.error(
+            f"Could not find package_id for file: {file_name} with GUID: {guid} "
+        )
         Logger.error(f"Bundled paths searched: {list(Resources.getSecureSearchPaths())}")
         return ""
 

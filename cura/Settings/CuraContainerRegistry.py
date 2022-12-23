@@ -86,9 +86,8 @@ class CuraContainerRegistry(ContainerRegistry):
         :return: :type{string} Name that is unique for the specified type and name/id
         """
         new_name = new_name.strip()
-        num_check = re.compile(r"(.*?)\s*#\d+$").match(new_name)
-        if num_check:
-            new_name = num_check.group(1)
+        if num_check := re.compile(r"(.*?)\s*#\d+$").match(new_name):
+            new_name = num_check[1]
         if new_name == "":
             new_name = fallback_name
 
@@ -131,16 +130,15 @@ class CuraContainerRegistry(ContainerRegistry):
             return False
         description = file_type[:split]
         extension = file_type[split + 4:-1]  # Leave out the " (*." and ")".
-        if not file_name.endswith("." + extension):  # Auto-fill the extension if the user did not provide any.
-            file_name += "." + extension
+        if not file_name.endswith(f".{extension}"):  # Auto-fill the extension if the user did not provide any.
+            file_name += f".{extension}"
 
         # On Windows, QML FileDialog properly asks for overwrite confirm, but not on other platforms, so handle those ourself.
-        if not Platform.isWindows():
-            if os.path.exists(file_name):
-                result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
-                                              catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_name))
-                if result == QMessageBox.StandardButton.No:
-                    return False
+        if not Platform.isWindows() and os.path.exists(file_name):
+            result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
+                                          catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_name))
+            if result == QMessageBox.StandardButton.No:
+                return False
 
         profile_writer = self._findProfileWriter(extension, description)
         try:
@@ -291,7 +289,9 @@ class CuraContainerRegistry(ContainerRegistry):
                     global_profile = profile_or_list[0]
                     extruder_profiles = []
                     for idx, extruder in enumerate(global_stack.extruderList):
-                        profile_id = ContainerRegistry.getInstance().uniqueName(global_stack.getId() + "_extruder_" + str(idx + 1))
+                        profile_id = ContainerRegistry.getInstance().uniqueName(
+                            f"{global_stack.getId()}_extruder_{str(idx + 1)}"
+                        )
                         profile = InstanceContainer(profile_id)
                         profile.setName(quality_name)
                         profile.setMetaDataEntry("setting_version", cura.CuraApplication.CuraApplication.SettingVersion)
@@ -302,8 +302,9 @@ class CuraContainerRegistry(ContainerRegistry):
                         if idx == 0:
                             # Move all per-extruder settings to the first extruder's quality_changes
                             for qc_setting_key in global_profile.getAllKeys():
-                                settable_per_extruder = global_stack.getProperty(qc_setting_key, "settable_per_extruder")
-                                if settable_per_extruder:
+                                if settable_per_extruder := global_stack.getProperty(
+                                    qc_setting_key, "settable_per_extruder"
+                                ):
                                     setting_value = global_profile.getProperty(qc_setting_key, "value")
 
                                     setting_definition = global_stack.getSettingDefinition(qc_setting_key)
@@ -326,7 +327,9 @@ class CuraContainerRegistry(ContainerRegistry):
                 for profile_index, profile in enumerate(profile_or_list):
                     if profile_index == 0:
                         # This is assumed to be the global profile
-                        profile_id = (cast(ContainerInterface, global_stack.getBottom()).getId() + "_" + name_seed).lower().replace(" ", "_")
+                        profile_id = f"{cast(ContainerInterface, global_stack.getBottom()).getId()}_{name_seed}".lower().replace(
+                            " ", "_"
+                        )
 
                     elif profile_index < len(machine_extruders) + 1:
                         # This is assumed to be an extruder profile
@@ -336,7 +339,7 @@ class CuraContainerRegistry(ContainerRegistry):
                             profile.setMetaDataEntry("position", extruder_position)
                         else:
                             profile.setMetaDataEntry("position", extruder_position)
-                        profile_id = (extruder_id + "_" + name_seed).lower().replace(" ", "_")
+                        profile_id = f"{extruder_id}_{name_seed}".lower().replace(" ", "_")
 
                     else:  # More extruders in the imported file than in the machine.
                         continue  # Delete the additional profiles.
@@ -397,9 +400,9 @@ class CuraContainerRegistry(ContainerRegistry):
         for profile_name, profile_count in profile_count_by_name.items():
             if profile_count > 1:
                 continue
-            # Only one profile found, this should not ever be the case, so that profile needs to be removed!
-            invalid_quality_changes = ContainerRegistry.getInstance().findContainersMetadata(name=profile_name)
-            if invalid_quality_changes:
+            if invalid_quality_changes := ContainerRegistry.getInstance().findContainersMetadata(
+                name=profile_name
+            ):
                 Logger.log("d", "Found an invalid quality_changes profile with the name %s. Going to remove that now", profile_name)
                 self.removeContainer(invalid_quality_changes[0]["id"])
 
@@ -418,9 +421,7 @@ class CuraContainerRegistry(ContainerRegistry):
         try:
             if int(metadata["setting_version"]) != cura.CuraApplication.CuraApplication.SettingVersion:
                 return False
-        except ValueError:  # Not parsable as int.
-            return False
-        except TypeError:  # Expecting string input here, not e.g. list or anything.
+        except (ValueError, TypeError):  # Not parsable as int.
             return False
         return True
 

@@ -65,11 +65,8 @@ class MachineSettingsManager(QObject):
         material_node = None
         if has_materials:
             global_stack.setMetaDataEntry("has_materials", True)
-        else:
-            # The metadata entry is stored in an ini, and ini files are parsed as strings only.
-            # Because any non-empty string evaluates to a boolean True, we have to remove the entry to make it False.
-            if "has_materials" in global_stack.getMetaData():
-                global_stack.removeMetaDataEntry("has_materials")
+        elif "has_materials" in global_stack.getMetaData():
+            global_stack.removeMetaDataEntry("has_materials")
 
         # set materials
         for position, extruder in enumerate(global_stack.extruderList):

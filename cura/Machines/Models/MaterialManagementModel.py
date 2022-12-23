@@ -50,10 +50,12 @@ class MaterialManagementModel(QObject):
 
         container_registry = CuraContainerRegistry.getInstance()
         ids_to_remove = {metadata.get("id", "") for metadata in container_registry.findInstanceContainersMetadata(base_file = material_node.base_file)}
-        for extruder_stack in container_registry.findContainerStacks(type = "extruder_train"):
-            if extruder_stack.material.getId() in ids_to_remove:
-                return False
-        return True
+        return all(
+            extruder_stack.material.getId() not in ids_to_remove
+            for extruder_stack in container_registry.findContainerStacks(
+                type="extruder_train"
+            )
+        )
 
     @pyqtSlot("QVariant", str)
     def setMaterialName(self, material_node: "MaterialNode", name: str) -> None:
@@ -144,9 +146,10 @@ class MaterialManagementModel(QObject):
             new_id = new_base_id
             definition = container_to_copy.getMetaDataEntry("definition")
             if definition != "fdmprinter":
-                new_id += "_" + definition
-                variant_name = container_to_copy.getMetaDataEntry("variant_name")
-                if variant_name:
+                new_id += f"_{definition}"
+                if variant_name := container_to_copy.getMetaDataEntry(
+                    "variant_name"
+                ):
                     new_id += "_" + variant_name.replace(" ", "_")
 
             new_container = copy.deepcopy(container_to_copy)

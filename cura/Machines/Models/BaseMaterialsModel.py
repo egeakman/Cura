@@ -178,10 +178,7 @@ class BaseMaterialsModel(ListModel):
         if global_stack is None or not self._enabled:
             return False
 
-        if self._extruder_position >= len(global_stack.extruderList):
-            return False
-
-        return True
+        return self._extruder_position < len(global_stack.extruderList)
 
     def _createMaterialItem(self, root_material_id, container_node):
         """This is another convenience function which is shared by all material models so it's put here to avoid having
@@ -191,23 +188,24 @@ class BaseMaterialsModel(ListModel):
         if not metadata_list:
             return None
         metadata = metadata_list[0]
-        item = {
-            "root_material_id":     root_material_id,
-            "id":                   metadata["id"],
-            "container_id":         metadata["id"], # TODO: Remove duplicate in material manager qml
-            "GUID":                 metadata["GUID"],
-            "name":                 metadata["name"],
-            "brand":                metadata["brand"],
-            "description":          metadata["description"],
-            "material":             metadata["material"],
-            "color_name":           metadata["color_name"],
-            "color_code":           metadata.get("color_code", ""),
-            "density":              metadata.get("properties", {}).get("density", ""),
-            "diameter":             metadata.get("properties", {}).get("diameter", ""),
+        return {
+            "root_material_id": root_material_id,
+            "id": metadata["id"],
+            "container_id": metadata[
+                "id"
+            ],  # TODO: Remove duplicate in material manager qml
+            "GUID": metadata["GUID"],
+            "name": metadata["name"],
+            "brand": metadata["brand"],
+            "description": metadata["description"],
+            "material": metadata["material"],
+            "color_name": metadata["color_name"],
+            "color_code": metadata.get("color_code", ""),
+            "density": metadata.get("properties", {}).get("density", ""),
+            "diameter": metadata.get("properties", {}).get("diameter", ""),
             "approximate_diameter": metadata["approximate_diameter"],
-            "adhesion_info":        metadata["adhesion_info"],
-            "is_read_only":         self._container_registry.isReadOnly(metadata["id"]),
-            "container_node":       container_node,
-            "is_favorite":          root_material_id in self._favorite_ids
+            "adhesion_info": metadata["adhesion_info"],
+            "is_read_only": self._container_registry.isReadOnly(metadata["id"]),
+            "container_node": container_node,
+            "is_favorite": root_material_id in self._favorite_ids,
         }
-        return item

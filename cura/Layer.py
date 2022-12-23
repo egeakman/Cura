@@ -40,18 +40,10 @@ class Layer:
         self._thickness = thickness
 
     def lineMeshVertexCount(self) -> int:
-        result = 0
-        for polygon in self._polygons:
-            result += polygon.lineMeshVertexCount()
-
-        return result
+        return sum(polygon.lineMeshVertexCount() for polygon in self._polygons)
 
     def lineMeshElementCount(self) -> int:
-        result = 0
-        for polygon in self._polygons:
-            result += polygon.lineMeshElementCount()
-
-        return result
+        return sum(polygon.lineMeshElementCount() for polygon in self._polygons)
 
     def build(self, vertex_offset, index_offset, vertices, colors, line_dimensions, feedrates, extruders, line_types, indices):
         result_vertex_offset = vertex_offset
@@ -77,14 +69,10 @@ class Layer:
     def createMeshOrJumps(self, make_mesh: bool) -> MeshData:
         builder = MeshBuilder()
 
-        line_count = 0
-        if make_mesh:
-            for polygon in self._polygons:
-                line_count += polygon.meshLineCount
-        else:
-            for polygon in self._polygons:
-                line_count += polygon.jumpCount
-
+        line_count = sum(
+            polygon.meshLineCount if make_mesh else polygon.jumpCount
+            for polygon in self._polygons
+        )
         # Reserve the necessary space for the data upfront
         builder.reserveFaceAndVertexCount(2 * line_count, 4 * line_count)
 

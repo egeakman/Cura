@@ -27,4 +27,4 @@ class PaginationLinks:
         self.prev_page = prev
 
     def __str__(self) -> str:
-        return "Pagination Links | First: {}, Last: {}, Next: {}, Prev: {}".format(self.first_page, self.last_page, self.next_page, self.prev_page)
+        return f"Pagination Links | First: {self.first_page}, Last: {self.last_page}, Next: {self.next_page}, Prev: {self.prev_page}"

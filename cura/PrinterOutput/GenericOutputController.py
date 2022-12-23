@@ -46,20 +46,21 @@ class GenericOutputController(PrinterOutputController):
                 extruder.targetHotendTemperatureChanged.connect(self._onTargetHotendTemperatureChanged)
 
     def _onPrinterStateChanged(self) -> None:
-        if self._active_printer and self._active_printer.state != "idle":
-            if self._preheat_bed_timer.isActive():
-                self._preheat_bed_timer.stop()
-                if self._preheat_printer:
-                    self._preheat_printer.updateIsPreheating(False)
-            if self._preheat_hotends_timer.isActive():
-                self._preheat_hotends_timer.stop()
-                for extruder in self._preheat_hotends:
-                    extruder.updateIsPreheating(False)
-                self._preheat_hotends = set()
+        if not self._active_printer or self._active_printer.state == "idle":
+            return
+        if self._preheat_bed_timer.isActive():
+            self._preheat_bed_timer.stop()
+            if self._preheat_printer:
+                self._preheat_printer.updateIsPreheating(False)
+        if self._preheat_hotends_timer.isActive():
+            self._preheat_hotends_timer.stop()
+            for extruder in self._preheat_hotends:
+                extruder.updateIsPreheating(False)
+            self._preheat_hotends = set()
 
     def moveHead(self, printer: "PrinterOutputModel", x, y, z, speed) -> None:
         self._output_device.sendCommand("G91")
-        self._output_device.sendCommand("G0 X%s Y%s Z%s F%s" % (x, y, z, speed))
+        self._output_device.sendCommand(f"G0 X{x} Y{y} Z{z} F{speed}")
         self._output_device.sendCommand("G90")
 
     def homeHead(self, printer: "PrinterOutputModel") -> None:
@@ -72,18 +73,17 @@ class GenericOutputController(PrinterOutputController):
         self._output_device.sendCommand(command.upper()) #Most printers only understand uppercase g-code commands.
 
     def setJobState(self, job: "PrintJobOutputModel", state: str) -> None:
-        if state == "pause":
+        if state == "abort":
+            self._output_device.cancelPrint()
+        elif state == "pause":
             self._output_device.pausePrint()
             job.updateState("paused")
         elif state == "print":
             self._output_device.resumePrint()
             job.updateState("printing")
-        elif state == "abort":
-            self._output_device.cancelPrint()
-            pass
 
     def setTargetBedTemperature(self, printer: "PrinterOutputModel", temperature: float) -> None:
-        self._output_device.sendCommand("M140 S%s" % round(temperature)) # The API doesn't allow floating point.
+        self._output_device.sendCommand(f"M140 S{round(temperature)}")
 
     def _onTargetBedTemperatureChanged(self) -> None:
         if self._preheat_bed_timer.isActive() and self._preheat_printer and self._preheat_printer.targetBedTemperature == 0:
@@ -115,7 +115,7 @@ class GenericOutputController(PrinterOutputController):
         self._preheat_printer.updateIsPreheating(False)
 
     def setTargetHotendTemperature(self, printer: "PrinterOutputModel", position: int, temperature: Union[int, float]) -> None:
-        self._output_device.sendCommand("M104 S%s T%s" % (temperature, position))
+        self._output_device.sendCommand(f"M104 S{temperature} T{position}")
 
     def _onTargetHotendTemperatureChanged(self) -> None:
         if not self._preheat_hotends_timer.isActive():

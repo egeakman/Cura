@@ -17,8 +17,6 @@ catalog = i18nCatalog("cura")
 
 
 def getMetaData() -> Dict:
-    workspace_extension = "3mf"
-
     metaData = {}
     if "3MFReader.ThreeMFReader" in sys.modules:
         metaData["mesh_reader"] = [
@@ -27,6 +25,8 @@ def getMetaData() -> Dict:
                 "description": catalog.i18nc("@item:inlistbox", "3MF File")
             }
         ]
+        workspace_extension = "3mf"
+
         metaData["workspace_reader"] = [
             {
                 "extension": workspace_extension,

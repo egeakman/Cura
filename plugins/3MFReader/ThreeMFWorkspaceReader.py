@@ -118,12 +118,12 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
         self._container_registry = ContainerRegistry.getInstance()
 
         # suffixes registered with the MimeTypes don't start with a dot '.'
-        self._definition_container_suffix = "." + cast(MimeType, ContainerRegistry.getMimeTypeForContainer(DefinitionContainer)).preferredSuffix
+        self._definition_container_suffix = f".{cast(MimeType, ContainerRegistry.getMimeTypeForContainer(DefinitionContainer)).preferredSuffix}"
         self._material_container_suffix = None # We have to wait until all other plugins are loaded before we can set it
-        self._instance_container_suffix = "." + cast(MimeType, ContainerRegistry.getMimeTypeForContainer(InstanceContainer)).preferredSuffix
-        self._container_stack_suffix = "." + cast(MimeType, ContainerRegistry.getMimeTypeForContainer(ContainerStack)).preferredSuffix
-        self._extruder_stack_suffix = "." + cast(MimeType, ContainerRegistry.getMimeTypeForContainer(ExtruderStack)).preferredSuffix
-        self._global_stack_suffix = "." + cast(MimeType, ContainerRegistry.getMimeTypeForContainer(GlobalStack)).preferredSuffix
+        self._instance_container_suffix = f".{cast(MimeType, ContainerRegistry.getMimeTypeForContainer(InstanceContainer)).preferredSuffix}"
+        self._container_stack_suffix = f".{cast(MimeType, ContainerRegistry.getMimeTypeForContainer(ContainerStack)).preferredSuffix}"
+        self._extruder_stack_suffix = f".{cast(MimeType, ContainerRegistry.getMimeTypeForContainer(ExtruderStack)).preferredSuffix}"
+        self._global_stack_suffix = f".{cast(MimeType, ContainerRegistry.getMimeTypeForContainer(GlobalStack)).preferredSuffix}"
 
         # Certain instance container types are ignored because we make the assumption that only we make those types
         # of containers. They are:
@@ -136,7 +136,9 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
         self._id_mapping = {} # type: Dict[str, str]
 
         # In Cura 2.5 and 2.6, the empty profiles used to have those long names
-        self._old_empty_profile_id_dict = {"empty_%s" % k: "empty" for k in ["material", "variant"]}
+        self._old_empty_profile_id_dict = {
+            f"empty_{k}": "empty" for k in ["material", "variant"]
+        }
 
         self._old_new_materials = {} # type: Dict[str, str]
         self._machine_info = None
@@ -194,7 +196,7 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
         if len(global_stack_file_list) > 1:
             Logger.log("e", "More than one global stack file found: [{file_list}]".format(file_list = global_stack_file_list))
             #But we can recover by just getting the first global stack file.
-        if len(global_stack_file_list) == 0:
+        if not global_stack_file_list:
             Logger.log("e", "No global stack file found!")
             raise FileNotFoundError("No global stack file found!")
 

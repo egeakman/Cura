@@ -76,12 +76,11 @@ class CuraProfileReader(ProfileReader):
             return []
 
         version = int(parser["general"]["version"])
-        setting_version = int(parser["metadata"].get("setting_version", "0"))
-        if InstanceContainer.Version != version:
-            name = parser["general"]["name"]
-            return self._upgradeProfileVersion(serialized, name, version, setting_version)
-        else:
+        if InstanceContainer.Version == version:
             return [(serialized, profile_id)]
+        name = parser["general"]["name"]
+        setting_version = int(parser["metadata"].get("setting_version", "0"))
+        return self._upgradeProfileVersion(serialized, name, version, setting_version)
 
     def _loadProfile(self, serialized: str, profile_id: str) -> Optional[InstanceContainer]:
         """Load a profile from a serialized string.

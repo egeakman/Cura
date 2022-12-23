@@ -246,9 +246,11 @@ class WorkspaceDialog(QObject):
     @pyqtProperty(int, constant = True)
     def totalNumberOfSettings(self) -> int:
         general_definition_containers = ContainerRegistry.getInstance().findDefinitionContainers(id = "fdmprinter")
-        if not general_definition_containers:
-            return 0
-        return len(general_definition_containers[0].getAllKeys())
+        return (
+            len(general_definition_containers[0].getAllKeys())
+            if general_definition_containers
+            else 0
+        )
 
     @pyqtProperty(int, notify = numVisibleSettingsChanged)
     def numVisibleSettings(self) -> int:
@@ -330,15 +332,19 @@ class WorkspaceDialog(QObject):
         # If the machine needs to be re-created, the definition_changes should also be re-created.
         # If the machine strategy is None, it means that there is no name conflict with existing ones. In this case
         # new definitions changes are created
-        if "machine" in self._result:
-            if self._result["machine"] == "new" or self._result["machine"] is None and self._result["definition_changes"] is None:
-                self._result["definition_changes"] = "new"
+        if "machine" in self._result and (
+            self._result["machine"] == "new"
+            or self._result["machine"] is None
+            and self._result["definition_changes"] is None
+        ):
+            self._result["definition_changes"] = "new"
 
         return self._result
 
     def _createViewFromQML(self) -> None:
-        three_mf_reader_path = PluginRegistry.getInstance().getPluginPath("3MFReader")
-        if three_mf_reader_path:
+        if three_mf_reader_path := PluginRegistry.getInstance().getPluginPath(
+            "3MFReader"
+        ):
             path = os.path.join(three_mf_reader_path, self._qml_url)
             self._view = CuraApplication.getInstance().createQmlComponent(path, {"manager": self})
 

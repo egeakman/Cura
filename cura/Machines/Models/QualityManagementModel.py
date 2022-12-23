@@ -160,10 +160,10 @@ class QualityManagementModel(ListModel):
         container_registry = cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry()
         new_name = container_registry.uniqueName(new_name)
 
-        intent_category = quality_model_item["intent_category"]
-        quality_group = quality_model_item["quality_group"]
         quality_changes_group = quality_model_item["quality_changes_group"]
         if quality_changes_group is None:
+            intent_category = quality_model_item["intent_category"]
+            quality_group = quality_model_item["quality_group"]
             new_quality_changes = self._createQualityChanges(quality_group.quality_type, intent_category, new_name,
                                                              global_stack, extruder_stack = None)
             container_registry.addContainer(new_quality_changes)
@@ -208,7 +208,7 @@ class QualityManagementModel(ListModel):
             return
 
         machine_manager.blurSettings.emit()
-        if base_name is None or base_name == "":
+        if base_name is None or not base_name:
             base_name = active_quality_name
         container_registry = cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry()
         unique_name = container_registry.uniqueName(base_name)
@@ -254,7 +254,7 @@ class QualityManagementModel(ListModel):
 
         container_registry = cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry()
         base_id = machine.definition.getId() if extruder_stack is None else extruder_stack.getId()
-        new_id = base_id + "_" + new_name
+        new_id = f"{base_id}_{new_name}"
         new_id = new_id.lower().replace(" ", "_")
         new_id = container_registry.uniqueName(new_id)
 
@@ -323,8 +323,11 @@ class QualityManagementModel(ListModel):
         quality_group_dict = container_tree.getCurrentQualityGroups()
         quality_changes_group_list = container_tree.getCurrentQualityChangesGroups()
 
-        available_quality_types = set(quality_type for quality_type, quality_group in quality_group_dict.items()
-                                      if quality_group.is_available)
+        available_quality_types = {
+            quality_type
+            for quality_type, quality_group in quality_group_dict.items()
+            if quality_group.is_available
+        }
         if not available_quality_types and not quality_changes_group_list:
             # Nothing to show
             self.setItems([])
@@ -359,7 +362,7 @@ class QualityManagementModel(ListModel):
         for intent_category, quality_type in available_intent_list:
             if not quality_group_dict[quality_type].is_available:
                 continue
-            
+
             result.append({
                 "name": quality_group_dict[quality_type].name,  # Use the quality name as the display name
                 "is_read_only": True,

@@ -78,14 +78,15 @@ class MachineActionManager(QObject):
 
         Raises an exception when the action is not recognised.
         """
-        if action_key in self._machine_actions:
-            if definition_id in self._required_actions:
-                if self._machine_actions[action_key] not in self._required_actions[definition_id]:
-                    self._required_actions[definition_id].append(self._machine_actions[action_key])
-            else:
-                self._required_actions[definition_id] = [self._machine_actions[action_key]]
+        if action_key not in self._machine_actions:
+            raise UnknownMachineActionError(
+                f"Action {action_key}, which is required for {definition_id} is not known."
+            )
+        if definition_id in self._required_actions:
+            if self._machine_actions[action_key] not in self._required_actions[definition_id]:
+                self._required_actions[definition_id].append(self._machine_actions[action_key])
         else:
-            raise UnknownMachineActionError("Action %s, which is required for %s is not known." % (action_key, definition_id))
+            self._required_actions[definition_id] = [self._machine_actions[action_key]]
 
     def addSupportedAction(self, definition_id: str, action_key: str) -> None:
         """Add a supported action to a machine."""
@@ -130,7 +131,7 @@ class MachineActionManager(QObject):
         if definition_id in self._supported_actions:
             return list(self._supported_actions[definition_id])
         else:
-            return list()
+            return []
 
     def getRequiredActions(self, definition_id: str) -> List["MachineAction"]:
         """Get all actions required by given machine
@@ -141,7 +142,7 @@ class MachineActionManager(QObject):
         if definition_id in self._required_actions:
             return self._required_actions[definition_id]
         else:
-            return list()
+            return []
 
     @pyqtSlot(str, result = "QVariantList")
     def getFirstStartActions(self, definition_id: str) -> List["MachineAction"]:
@@ -173,7 +174,4 @@ class MachineActionManager(QObject):
         :param key: String of key to select
         :return: Machine action if found, None otherwise
         """
-        if key in self._machine_actions:
-            return self._machine_actions[key]
-        else:
-            return None
+        return self._machine_actions[key] if key in self._machine_actions else None

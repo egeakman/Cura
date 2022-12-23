@@ -143,21 +143,22 @@ class BuildVolume(SceneNode):
         self._changed_settings_since_last_rebuild = []  # type: List[str]
 
     def _onSceneChanged(self, source):
-        if self._global_container_stack:
-            # Ignore anything that is not something we can slice in the first place!
-            if source.callDecoration("isSliceable"):
-                self._scene_change_timer.start()
+        if self._global_container_stack and source.callDecoration("isSliceable"):
+            self._scene_change_timer.start()
 
     def _onSceneChangeTimerFinished(self):
         root = self._application.getController().getScene().getRoot()
-        new_scene_objects = set(node for node in BreadthFirstIterator(root) if node.callDecoration("isSliceable"))
+        new_scene_objects = {
+            node
+            for node in BreadthFirstIterator(root)
+            if node.callDecoration("isSliceable")
+        }
         if new_scene_objects != self._scene_objects:
             for node in new_scene_objects - self._scene_objects: #Nodes that were added to the scene.
                 self._updateNodeListeners(node)
                 node.decoratorsChanged.connect(self._updateNodeListeners)  # Make sure that decoration changes afterwards also receive the same treatment
             for node in self._scene_objects - new_scene_objects: #Nodes that were removed from the scene.
-                per_mesh_stack = node.callDecoration("getStack")
-                if per_mesh_stack:
+                if per_mesh_stack := node.callDecoration("getStack"):
                     per_mesh_stack.propertyChanged.disconnect(self._onSettingPropertyChanged)
                 active_extruder_changed = node.callDecoration("getActiveExtruderChangedSignal")
                 if active_extruder_changed is not None:
@@ -174,8 +175,7 @@ class BuildVolume(SceneNode):
         :param node: The node for which the decorators changed.
         """
 
-        per_mesh_stack = node.callDecoration("getStack")
-        if per_mesh_stack:
+        if per_mesh_stack := node.callDecoration("getStack"):
             per_mesh_stack.propertyChanged.connect(self._onSettingPropertyChanged)
         active_extruder_changed = node.callDecoration("getActiveExtruderChangedSignal")
         if active_extruder_changed is not None:
@@ -294,11 +294,8 @@ class BuildVolume(SceneNode):
                     if not self._global_container_stack.extruderList[int(extruder_position)].isEnabled and not node.callDecoration("isGroup"):
                         node.setOutsideBuildArea(True)
                         continue
-                except IndexError:  # Happens when the extruder list is too short. We're not done building the printer in memory yet.
+                except (IndexError, TypeError):  # Happens when the extruder list is too short. We're not done building the printer in memory yet.
                     continue
-                except TypeError:  # Happens when extruder_position is None. This object has no extruder decoration.
-                    continue
-
                 node.setOutsideBuildArea(False)
 
         # Group nodes should override the _outside_buildarea property of their children.
@@ -370,7 +367,7 @@ class BuildVolume(SceneNode):
                 Vector(min_w, min_h - z_fight_distance, max_d)
             )
 
-            for n in range(0, 6):
+            for n in range(6):
                 v = mb.getVertex(n)
                 mb.setVertexUVCoordinates(n, v[0], v[2])
             return mb.build()
@@ -384,13 +381,11 @@ class BuildVolume(SceneNode):
             mb.addVertex(0, min_h - z_fight_distance, 0)
             mb.addArc(max_w, Vector.Unit_Y, center=Vector(0, min_h - z_fight_distance, 0))
             sections = mb.getVertexCount() - 1  # Center point is not an arc section
-            indices = []
-            for n in range(0, sections - 1):
-                indices.append([0, n + 2, n + 1])
+            indices = [[0, n + 2, n + 1] for n in range(sections - 1)]
             mb.addIndices(numpy.asarray(indices, dtype=numpy.int32))
             mb.calculateNormals()
 
-            for n in range(0, mb.getVertexCount()):
+            for n in range(mb.getVertexCount()):
                 v = mb.getVertex(n)
                 mb.setVertexUVCoordinates(n, v[0], v[2] * aspect)
             return mb.build().getTransformed(scale_matrix)
@@ -666,8 +661,7 @@ class BuildVolume(SceneNode):
             if self._engine_ready:
                 self.rebuild()
 
-            camera = Application.getInstance().getController().getCameraTool()
-            if camera:
+            if camera := Application.getInstance().getController().getCameraTool():
                 diagonal = self.getDiagonalSize()
                 if diagonal > 1:
                     # You can zoom out up to 5 times the diagonal. This gives some space around the volume.
@@ -803,7 +797,7 @@ class BuildVolume(SceneNode):
             prime_tower_collision = False
             prime_tower_areas = self._computeDisallowedAreasPrinted(used_extruders)
             for extruder_id in prime_tower_areas:
-                for area_index, prime_tower_area in enumerate(prime_tower_areas[extruder_id]):
+                for prime_tower_area in prime_tower_areas[extruder_id]:
                     for area in result_areas[extruder_id]:
                         if prime_tower_area.intersectsPolygon(area) is not None:
                             prime_tower_collision = True
@@ -943,10 +937,10 @@ class BuildVolume(SceneNode):
             if offset_y is None:
                 offset_y = 0
             offset_y = -offset_y  # Y direction of g-code is the inverse of Y direction of Cura's scene space.
-            result[extruder_id] = []
-
-            for polygon in machine_disallowed_polygons:
-                result[extruder_id].append(polygon.translate(offset_x, offset_y))  # Compensate for the nozzle offset of this extruder.
+            result[extruder_id] = [
+                polygon.translate(offset_x, offset_y)
+                for polygon in machine_disallowed_polygons
+            ]
 
             # Add the border around the edge of the build volume.
             left_unreachable_border = 0
@@ -1008,7 +1002,7 @@ class BuildVolume(SceneNode):
             else:
                 sections = 32
                 arc_vertex = [0, half_machine_depth - border_size]
-                for i in range(0, sections):
+                for i in range(sections):
                     quadrant = math.floor(4 * i / sections)
                     vertices = []
                     if quadrant == 0:

@@ -178,14 +178,11 @@ class ExtruderStack(CuraContainerStack):
         # something changed for those settings.
         if not self.getNextStack():
             return #There are no global settings to depend on.
-        definitions = self.getNextStack().definition.findDefinitions(key = key)
-        if definitions:
-            has_global_dependencies = False
-            for relation in definitions[0].relations:
-                if not getattr(relation.target, "settable_per_extruder", True):
-                    has_global_dependencies = True
-                    break
-
+        if definitions := self.getNextStack().definition.findDefinitions(key=key):
+            has_global_dependencies = any(
+                not getattr(relation.target, "settable_per_extruder", True)
+                for relation in definitions[0].relations
+            )
             if has_global_dependencies:
                 self.getNextStack().propertiesChanged.emit(key, properties)
 

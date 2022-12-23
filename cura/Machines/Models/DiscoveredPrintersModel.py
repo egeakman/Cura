@@ -72,16 +72,12 @@ class DiscoveredPrinter(QObject):
     # Human readable machine type string
     @pyqtProperty(str, notify = machineTypeChanged)
     def readableMachineType(self) -> str:
-        # In NetworkOutputDevice, when it updates a printer information, it updates the machine type using the field
-        # "machine_variant", and for some reason, it's not the machine type ID/codename/... but a human-readable string
-        # like "Ultimaker 3". The code below handles this case.
-        if self._hasHumanReadableMachineTypeName(self._machine_type):
-            readable_type = self._machine_type
-        else:
-            readable_type = self._getMachineTypeNameFromId(self._machine_type)
-            if not readable_type:
-                readable_type = catalog.i18nc("@label", "Unknown")
-        return readable_type
+        return (
+            self._machine_type
+            if self._hasHumanReadableMachineTypeName(self._machine_type)
+            else self._getMachineTypeNameFromId(self._machine_type)
+            or catalog.i18nc("@label", "Unknown")
+        )
 
     @pyqtProperty(bool, notify = machineTypeChanged)
     def isUnknownMachineType(self) -> bool:
@@ -92,12 +88,16 @@ class DiscoveredPrinter(QObject):
         return not readable_type
 
     def _getMachineTypeNameFromId(self, machine_type_id: str) -> str:
-        machine_type_name = ""
         from cura.CuraApplication import CuraApplication
-        results = CuraApplication.getInstance().getContainerRegistry().findDefinitionContainersMetadata(id = machine_type_id)
-        if results:
-            machine_type_name = results[0]["name"]
-        return machine_type_name
+        return (
+            results[0]["name"]
+            if (
+                results := CuraApplication.getInstance()
+                .getContainerRegistry()
+                .findDefinitionContainersMetadata(id=machine_type_id)
+            )
+            else ""
+        )
 
     @pyqtProperty(QObject, constant = True)
     def device(self) -> "NetworkedPrinterOutputDevice":
@@ -125,7 +125,7 @@ class DiscoveredPrintersModel(QObject):
         super().__init__(parent)
 
         self._application = application
-        self._discovered_printer_by_ip_dict = dict()  # type: Dict[str, DiscoveredPrinter]
+        self._discovered_printer_by_ip_dict = {}
 
         self._plugin_for_manual_device = None  # type: Optional[OutputDevicePlugin]
         self._network_plugin_queue = []  # type: List[OutputDevicePlugin]
@@ -153,9 +153,13 @@ class DiscoveredPrintersModel(QObject):
 
         all_plugins_dict = self._application.getOutputDeviceManager().getAllOutputDevicePlugins()
 
-        self._network_plugin_queue = [item for item in filter(
-            lambda plugin_item: plugin_item.canAddManualDevice(address) in priority_order,
-            all_plugins_dict.values())]
+        self._network_plugin_queue = list(
+            filter(
+                lambda plugin_item: plugin_item.canAddManualDevice(address)
+                in priority_order,
+                all_plugins_dict.values(),
+            )
+        )
 
         if not self._network_plugin_queue:
             Logger.log("d", "Could not find a plugin to accept adding %s manually via address.", address)
@@ -215,8 +219,11 @@ class DiscoveredPrintersModel(QObject):
 
     @pyqtProperty("QVariantList", notify = discoveredPrintersChanged)
     def discoveredPrinters(self) -> List["DiscoveredPrinter"]:
-        item_list = list(
-            x for x in self._discovered_printer_by_ip_dict.values() if not parseBool(x.device.getProperty("temporary")))
+        item_list = [
+            x
+            for x in self._discovered_printer_by_ip_dict.values()
+            if not parseBool(x.device.getProperty("temporary"))
+        ]
 
         # Split the printers into 2 lists and sort them ascending based on names.
         available_list = []

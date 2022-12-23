@@ -132,15 +132,17 @@ class IntentModel(ListModel):
             quality_group = quality_groups[quality_node.quality_type]
             layer_height = fetchLayerHeight(quality_group)
 
-            for intent_id, intent_node in quality_node.intents.items():
-                if intent_node.intent_category != self._intent_category:
-                    continue
-                extruder_intents.append({"name": quality_group.name,
-                                         "quality_type": quality_group.quality_type,
-                                         "layer_height": layer_height,
-                                         "available": quality_group.is_available,
-                                         "intent_category": self._intent_category
-                                         })
+            extruder_intents.extend(
+                {
+                    "name": quality_group.name,
+                    "quality_type": quality_group.quality_type,
+                    "layer_height": layer_height,
+                    "available": quality_group.is_available,
+                    "intent_category": self._intent_category,
+                }
+                for intent_id, intent_node in quality_node.intents.items()
+                if intent_node.intent_category == self._intent_category
+            )
         return extruder_intents
 
     def __repr__(self):

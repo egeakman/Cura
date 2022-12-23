@@ -54,14 +54,12 @@ class AMFReader(MeshReader):
             xml_document = zipped_file.read(zipped_file.namelist()[0])
             zipped_file.close()
         except zipfile.BadZipfile:
-            raw_file = open(file_name, "r")
-            xml_document = raw_file.read()
-            raw_file.close()
-
+            with open(file_name, "r") as raw_file:
+                xml_document = raw_file.read()
         try:
             amf_document = ET.fromstring(xml_document)
         except ET.ParseError:
-            Logger.log("e", "Could not parse XML in file %s" % base_name)
+            Logger.log("e", f"Could not parse XML in file {base_name}")
             return None
 
         if "unit" in amf_document.attrib:
@@ -79,7 +77,7 @@ class AMFReader(MeshReader):
         elif unit == "micron":
             scale = 0.001
         else:
-            Logger.log("w", "Unknown unit in amf: %s. Using mm instead." % unit)
+            Logger.log("w", f"Unknown unit in amf: {unit}. Using mm instead.")
             scale = 1.0
 
         nodes = []
@@ -123,14 +121,14 @@ class AMFReader(MeshReader):
                     new_node = CuraSceneNode()
                     new_node.setSelectable(True)
                     new_node.setMeshData(mesh_data)
-                    new_node.setName(base_name if len(nodes) == 0 else "%s %d" % (base_name, len(nodes)))
+                    new_node.setName("%s %d" % (base_name, len(nodes)) if nodes else base_name)
                     new_node.addDecorator(BuildPlateDecorator(CuraApplication.getInstance().getMultiBuildPlateModel().activeBuildPlate))
                     new_node.addDecorator(SliceableObjectDecorator())
 
                     nodes.append(new_node)
 
         if not nodes:
-            Logger.log("e", "No meshes in file %s" % base_name)
+            Logger.log("e", f"No meshes in file {base_name}")
             return None
 
         if len(nodes) == 1:
@@ -175,5 +173,9 @@ class AMFReader(MeshReader):
         indices = numpy.asarray(indices_list, dtype = numpy.int32)
         normals = calculateNormalsFromIndexedVertices(vertices, indices, face_count)
 
-        mesh_data = MeshData(vertices = vertices, indices = indices, normals = normals,file_name = file_name)
-        return mesh_data
+        return MeshData(
+            vertices=vertices,
+            indices=indices,
+            normals=normals,
+            file_name=file_name,
+        )

@@ -65,7 +65,10 @@ class MachineNode(ContainerNode):
         """
 
         if len(variant_names) != len(material_bases) or len(variant_names) != len(extruder_enabled):
-            Logger.log("e", "The number of extruders in the list of variants (" + str(len(variant_names)) + ") is not equal to the number of extruders in the list of materials (" + str(len(material_bases)) + ") or the list of enabled extruders (" + str(len(extruder_enabled)) + ").")
+            Logger.log(
+                "e",
+                f"The number of extruders in the list of variants ({len(variant_names)}) is not equal to the number of extruders in the list of materials ({len(material_bases)}) or the list of enabled extruders ({len(extruder_enabled)}).",
+            )
             return {}
         # For each extruder, find which quality profiles are available. Later we'll intersect the quality types.
         qualities_per_type_per_extruder = [{}] * len(variant_names)  # type: List[Dict[str, QualityNode]]
@@ -147,11 +150,9 @@ class MachineNode(ContainerNode):
         quality_groups = self.getQualityGroups(variant_names, material_bases, extruder_enabled)
         for quality_changes_group in groups_by_name.values():
             if quality_changes_group.quality_type not in quality_groups:
-                if quality_changes_group.quality_type == "not_supported":
-                    # Quality changes based on an empty profile are always available. 
-                    quality_changes_group.is_available = True
-                else:
-                    quality_changes_group.is_available = False
+                quality_changes_group.is_available = (
+                    quality_changes_group.quality_type == "not_supported"
+                )
             else:
                 # Quality changes group is available iff the quality group it depends on is available. Irrespective of whether the intent category is available.
                 quality_changes_group.is_available = quality_groups[quality_changes_group.quality_type].is_available
@@ -194,7 +195,7 @@ class MachineNode(ContainerNode):
         global_qualities = container_registry.findInstanceContainersMetadata(type = "quality", definition = self.quality_definition, global_quality = "True")  # First try specific to this printer.
         if not global_qualities:  # This printer doesn't override the global qualities.
             global_qualities = container_registry.findInstanceContainersMetadata(type = "quality", definition = "fdmprinter", global_quality = "True")  # Otherwise pick the global global qualities.
-            if not global_qualities:  # There are no global qualities either?! Something went very wrong, but we'll not crash and properly fill the tree.
-                global_qualities = [cura.CuraApplication.CuraApplication.getInstance().empty_quality_container.getMetaData()]
+        if not global_qualities:  # There are no global qualities either?! Something went very wrong, but we'll not crash and properly fill the tree.
+            global_qualities = [cura.CuraApplication.CuraApplication.getInstance().empty_quality_container.getMetaData()]
         for global_quality in global_qualities:
             self.global_qualities[global_quality["quality_type"]] = QualityNode(global_quality["id"], parent = self)

@@ -53,30 +53,39 @@ class PrinterConfigurationModel(QObject):
 
         The method checks if the mandatory fields are or not set
         """
-        if not self._extruder_configurations:
-            return False
-        for configuration in self._extruder_configurations:
-            if configuration is None:
-                return False
-        return self._printer_type != ""
+        return (
+            next(
+                (
+                    False
+                    for configuration in self._extruder_configurations
+                    if configuration is None
+                ),
+                self._printer_type != "",
+            )
+            if self._extruder_configurations
+            else False
+        )
 
     def hasAnyMaterialLoaded(self) -> bool:
-        if not self.isValid():
-            return False
-        for configuration in self._extruder_configurations:
-            if configuration.activeMaterial and configuration.activeMaterial.type != "empty":
-                return True
-        return False
+        return (
+            any(
+                configuration.activeMaterial
+                and configuration.activeMaterial.type != "empty"
+                for configuration in self._extruder_configurations
+            )
+            if self.isValid()
+            else False
+        )
 
     def __str__(self):
-        message_chunks = []
-        message_chunks.append("Printer type: " + self._printer_type)
-        message_chunks.append("Extruders: [")
-        for configuration in self._extruder_configurations:
-            message_chunks.append("   " + str(configuration))
+        message_chunks = [f"Printer type: {self._printer_type}", "Extruders: ["]
+        message_chunks.extend(
+            f"   {str(configuration)}"
+            for configuration in self._extruder_configurations
+        )
         message_chunks.append("]")
         if self._buildplate_configuration is not None:
-            message_chunks.append("Buildplate: " + self._buildplate_configuration)
+            message_chunks.append(f"Buildplate: {self._buildplate_configuration}")
 
         return "\n".join(message_chunks)
 
@@ -93,11 +102,13 @@ class PrinterConfigurationModel(QObject):
         if len(self.extruderConfigurations) != len(other.extruderConfigurations):
             return False
 
-        for self_extruder, other_extruder in zip(sorted(self._extruder_configurations, key=lambda x: x.position), sorted(other.extruderConfigurations, key=lambda x: x.position)):
-            if self_extruder != other_extruder:
-                return False
-
-        return True
+        return all(
+            self_extruder == other_extruder
+            for self_extruder, other_extruder in zip(
+                sorted(self._extruder_configurations, key=lambda x: x.position),
+                sorted(other.extruderConfigurations, key=lambda x: x.position),
+            )
+        )
 
     def __hash__(self):
         """The hash function is used to compare and create unique sets. The configuration is unique if the configuration

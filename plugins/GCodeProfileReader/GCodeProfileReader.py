@@ -55,7 +55,7 @@ class GCodeProfileReader(ProfileReader):
         if file_name.split(".")[-1] != "gcode":
             return None
 
-        prefix = ";SETTING_" + str(GCodeProfileReader.version) + " "
+        prefix = f";SETTING_{str(GCodeProfileReader.version)} "
         prefix_length = len(prefix)
 
         # Loading all settings from the file.
@@ -86,7 +86,6 @@ class GCodeProfileReader(ProfileReader):
             Logger.log("e", "Could not parse serialized JSON data from g-code %s, error: %s", file_name, e)
             return None
 
-        profiles = []
         global_profile = readQualityProfileFromString(json_data["global_quality"])
 
         # This is a fix for profiles created with 2.3.0 For some reason it added the "extruder" property to the
@@ -94,10 +93,11 @@ class GCodeProfileReader(ProfileReader):
         # The fix is simple and safe, as a global profile should never have the extruder entry.
         if global_profile.getMetaDataEntry("extruder", None) is not None:
             global_profile.setMetaDataEntry("extruder", None)
-        profiles.append(global_profile)
-
-        for profile_string in json_data.get("extruder_quality", []):
-            profiles.append(readQualityProfileFromString(profile_string))
+        profiles = [global_profile]
+        profiles.extend(
+            readQualityProfileFromString(profile_string)
+            for profile_string in json_data.get("extruder_quality", [])
+        )
         return profiles
 
 

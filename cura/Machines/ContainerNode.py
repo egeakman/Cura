@@ -73,4 +73,4 @@ class ContainerNode:
         return self._container
 
     def __str__(self) -> str:
-        return "%s[%s]" % (self.__class__.__name__, self.container_id)
+        return f"{self.__class__.__name__}[{self.container_id}]"

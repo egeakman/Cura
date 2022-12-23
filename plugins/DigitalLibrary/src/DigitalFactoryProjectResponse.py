@@ -59,7 +59,7 @@ class DigitalFactoryProjectResponse(BaseModel):
         super().__init__(**kwargs)
 
     def __str__(self) -> str:
-        return "Project: {}, Id: {}, from: {}".format(self.display_name, self.library_project_id, self.username)
+        return f"Project: {self.display_name}, Id: {self.library_project_id}, from: {self.username}"
 
     # Validates the model, raising an exception if the model is invalid.
     def validate(self) -> None:

@@ -56,9 +56,7 @@ class MaterialBrandsModel(BaseMaterialsModel):
             if material_type not in brand_group_dict[brand]:
                 brand_group_dict[brand][material_type] = []
 
-            # Now handle the individual materials
-            item = self._createMaterialItem(root_material_id, container_node)
-            if item:
+            if item := self._createMaterialItem(root_material_id, container_node):
                 brand_group_dict[brand][material_type].append(item)
 
         # Part 2: Organize the tree into models

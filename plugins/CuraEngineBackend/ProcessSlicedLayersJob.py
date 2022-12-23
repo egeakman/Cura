@@ -71,7 +71,10 @@ class ProcessSlicedLayersJob(Job):
         return self._build_plate_number
 
     def run(self):
-        Logger.log("d", "Processing new layer for build plate %s..." % self._build_plate_number)
+        Logger.log(
+            "d",
+            f"Processing new layer for build plate {self._build_plate_number}...",
+        )
         start_time = time()
         view = Application.getInstance().getController().getActiveView()
         if view.getPluginId() == "SimulationView":
@@ -166,12 +169,10 @@ class ProcessSlicedLayersJob(Job):
                 if polygon.point_type == 0:  # Point2D
                     new_points[:, 0] = points[:, 0]
                     new_points[:, 1] = layer.height / 1000  # layer height value is in backend representation
-                    new_points[:, 2] = -points[:, 1]
                 else: # Point3D
                     new_points[:, 0] = points[:, 0]
                     new_points[:, 1] = points[:, 2]
-                    new_points[:, 2] = -points[:, 1]
-
+                new_points[:, 2] = -points[:, 1]
                 this_poly = LayerPolygon.LayerPolygon(extruder, line_types, new_points, line_widths, line_thicknesses, line_feedrates)
                 this_poly.buildCache()
 
@@ -196,8 +197,7 @@ class ProcessSlicedLayersJob(Job):
         # Find out colors per extruder
         global_container_stack = Application.getInstance().getGlobalContainerStack()
         manager = ExtruderManager.getInstance()
-        extruders = manager.getActiveExtruderStacks()
-        if extruders:
+        if extruders := manager.getActiveExtruderStacks():
             material_color_map = numpy.zeros((len(extruders), 4), dtype = numpy.float32)
             for extruder in extruders:
                 position = int(extruder.getMetaDataEntry("position", default = "0"))
@@ -261,6 +261,5 @@ class ProcessSlicedLayersJob(Job):
                                                      catalog.i18nc("@info:title", "Information"))
                 if self._progress_message.getProgress() != 100:
                     self._progress_message.show()
-            else:
-                if self._progress_message:
-                    self._progress_message.hide()
+            elif self._progress_message:
+                self._progress_message.hide()

@@ -34,24 +34,19 @@ class CuraSceneController(QObject):
         Application.getInstance().getController().getScene().sceneChanged.connect(self.updateMaxBuildPlateDelayed)
 
     def updateMaxBuildPlateDelayed(self, *args):
-        if args:
-            source = args[0]
-        else:
-            source = None
-
+        source = args[0] if args else None
         if not isinstance(source, SceneNode) or isinstance(source, Camera):
             return
         self._change_timer.start()
 
     def updateMaxBuildPlate(self, *args):
-        global_stack = Application.getInstance().getGlobalContainerStack()
-        if global_stack:
+        if global_stack := Application.getInstance().getGlobalContainerStack():
             scene_has_support_meshes = self._sceneHasSupportMeshes()  # TODO: see if this can be cached
 
             if scene_has_support_meshes != global_stack.getProperty("support_meshes_present", "value"):
-                # Adjust the setting without having the setting value in an InstanceContainer
-                setting_definitions = global_stack.definition.findDefinitions(key="support_meshes_present")
-                if setting_definitions:
+                if setting_definitions := global_stack.definition.findDefinitions(
+                    key="support_meshes_present"
+                ):
                     # Recreate the setting definition because the default_value is readonly
                     definition_dict = setting_definitions[0].serialize_to_dict()
                     definition_dict["enabled"] = False  # The enabled property has a value that would need to be evaluated

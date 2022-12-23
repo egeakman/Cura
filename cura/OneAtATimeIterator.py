@@ -45,8 +45,8 @@ class OneAtATimeIterator(Iterator.Iterator):
         self._hit_map = [[self._checkHit(i, j) for i in node_list] for j in node_list]
 
         # Check if we have to files that block each other. If this is the case, there is no solution!
-        for a in range(0, len(node_list)):
-            for b in range(0, len(node_list)):
+        for a in range(len(node_list)):
+            for b in range(len(node_list)):
                 if a != b and self._hit_map[a][b] and self._hit_map[b][a]:
                     return
 
@@ -55,7 +55,7 @@ class OneAtATimeIterator(Iterator.Iterator):
         sorted(node_list, key = cmp_to_key(self._calculateScore))
 
         todo_node_list = [_ObjectOrder([], node_list)]
-        while len(todo_node_list) > 0:
+        while todo_node_list:
             current = todo_node_list.pop()
             for node in current.todo:
                 # Check if the object can be placed with what we have and still allows for a solution in the future
@@ -121,21 +121,14 @@ class OneAtATimeIterator(Iterator.Iterator):
 
         a_hit_hull = a.callDecoration("getConvexHullBoundary")
         b_hit_hull = b.callDecoration("getConvexHullHeadFull")
-        overlap = a_hit_hull.intersectsPolygon(b_hit_hull)
-
-        if overlap:
+        if overlap := a_hit_hull.intersectsPolygon(b_hit_hull):
             return True
 
         # Adhesion areas must never overlap, regardless of printing order
         # This would cause over-extrusion
         a_hit_hull = a.callDecoration("getAdhesionArea")
         b_hit_hull = b.callDecoration("getAdhesionArea")
-        overlap = a_hit_hull.intersectsPolygon(b_hit_hull)
-
-        if overlap:
-            return True
-        else:
-            return False
+        return bool(overlap := a_hit_hull.intersectsPolygon(b_hit_hull))
 
 
 class _ObjectOrder:

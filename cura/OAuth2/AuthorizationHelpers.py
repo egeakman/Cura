@@ -23,7 +23,7 @@ class AuthorizationHelpers:
 
     def __init__(self, settings: "OAuth2Settings") -> None:
         self._settings = settings
-        self._token_url = "{}/token".format(self._settings.OAUTH_SERVER_URL)
+        self._token_url = f"{self._settings.OAUTH_SERVER_URL}/token"
 
     @property
     def settings(self) -> "OAuth2Settings":
@@ -111,7 +111,7 @@ class AuthorizationHelpers:
         there will not be a callback.
         :param failed_callback: When the request failed or the response didn't parse, this function will be called.
         """
-        check_token_url = "{}/check-token".format(self._settings.OAUTH_SERVER_URL)
+        check_token_url = f"{self._settings.OAUTH_SERVER_URL}/check-token"
         Logger.log("d", "Checking the access token for [%s]", check_token_url)
         headers = {
             "Authorization": f"Bearer {access_token}"
@@ -146,8 +146,8 @@ class AuthorizationHelpers:
             return
         profile_data = profile_data["data"]
 
-        required_fields = {"user_id", "username"}
         if "user_id" not in profile_data or "username" not in profile_data:
+            required_fields = {"user_id", "username"}
             Logger.warning(f"User data missing required field(s): {required_fields - set(profile_data.keys())}")
             if failed_callback is not None:
                 failed_callback()

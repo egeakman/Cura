@@ -206,12 +206,14 @@ class WelcomePagesModel(ListModel):
 
     def getPageIndexById(self, page_id: str) -> Optional[int]:
         """Gets the page index with the given page ID. If the page ID doesn't exist, returns None."""
-        page_idx = None
-        for idx, page_item in enumerate(self._items):
-            if page_item["id"] == page_id:
-                page_idx = idx
-                break
-        return page_idx
+        return next(
+            (
+                idx
+                for idx, page_item in enumerate(self._items)
+                if page_item["id"] == page_id
+            ),
+            None,
+        )
 
     @staticmethod
     def _getBuiltinWelcomePagePath(page_filename: str) -> QUrl:

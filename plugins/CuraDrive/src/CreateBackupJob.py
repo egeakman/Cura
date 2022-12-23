@@ -61,7 +61,9 @@ class CreateBackupJob(Job):
 
         # Create an upload entry for the backup.
         timestamp = datetime.now().isoformat()
-        backup_meta_data["description"] = "{}.backup.{}.cura.zip".format(timestamp, backup_meta_data["cura_release"])
+        backup_meta_data[
+            "description"
+        ] = f'{timestamp}.backup.{backup_meta_data["cura_release"]}.cura.zip'
         self._requestUploadSlot(backup_meta_data, len(self._backup_zip))
 
         self._job_done.wait()

@@ -32,15 +32,13 @@ class ConvexHullNode(SceneNode):
         self._original_parent = parent
 
         # Color of the drawn convex hull
-        if not Application.getInstance().getIsHeadLess():
-            theme = QtApplication.getInstance().getTheme()
-            if theme:
-                self._color = Color(*theme.getColor("convex_hull").getRgb())
-            else:
-                self._color = Color(0, 0, 0)
-        else:
+        if Application.getInstance().getIsHeadLess():
             self._color = Color(0, 0, 0)
 
+        elif theme := QtApplication.getInstance().getTheme():
+            self._color = Color(*theme.getColor("convex_hull").getRgb())
+        else:
+            self._color = Color(0, 0, 0)
         # The y-coordinate of the convex hull mesh. Must not be 0, to prevent z-fighting.
         self._mesh_height = 0.1
 
@@ -65,13 +63,12 @@ class ConvexHullNode(SceneNode):
 
                     hull_mesh = hull_mesh_builder.build()
                     self.setMeshData(hull_mesh)
-            else:
-                if hull_mesh_builder.addConvexPolygonExtrusion(
+            elif hull_mesh_builder.addConvexPolygonExtrusion(
                     self._hull.getPoints()[::-1],  # bottom layer is reversed
                     self._mesh_height - thickness, self._mesh_height, color = self._color):
-                    hull_mesh_builder.resetNormals()
-                    hull_mesh = hull_mesh_builder.build()
-                    self.setMeshData(hull_mesh)
+                hull_mesh_builder.resetNormals()
+                hull_mesh = hull_mesh_builder.build()
+                self.setMeshData(hull_mesh)
 
     def getHull(self):
         return self._hull
@@ -100,8 +97,7 @@ class ConvexHullNode(SceneNode):
         return True
 
     def _onNodeDecoratorsChanged(self, node: SceneNode) -> None:
-        convex_hull_head = self._node.callDecoration("getConvexHullHeadFull")
-        if convex_hull_head:
+        if convex_hull_head := self._node.callDecoration("getConvexHullHeadFull"):
             convex_hull_head_builder = MeshBuilder()
             convex_hull_head_builder.addConvexPolygon(convex_hull_head.getPoints(), self._mesh_height - self._thickness)
             self._convex_hull_head_mesh = convex_hull_head_builder.build()

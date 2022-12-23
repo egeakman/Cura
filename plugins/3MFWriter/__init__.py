@@ -17,8 +17,6 @@ i18n_catalog = i18nCatalog("cura")
 
 
 def getMetaData():
-    workspace_extension = "3mf"
-
     metaData = {}
 
     if threemf_writer_was_imported:
@@ -30,6 +28,8 @@ def getMetaData():
                 "mode": ThreeMFWriter.ThreeMFWriter.OutputMode.BinaryMode
             }]
         }
+        workspace_extension = "3mf"
+
         metaData["workspace_writer"] = {
             "output": [{
                 "extension": workspace_extension,

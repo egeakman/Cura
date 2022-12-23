@@ -212,7 +212,7 @@ class CrashHandler:
         self.data["qt_version"] = QT_VERSION_STR
         self.data["pyqt_version"] = PYQT_VERSION_STR
         self.data["locale_os"] = locale.getlocale(locale.LC_MESSAGES)[0] if hasattr(locale, "LC_MESSAGES") else \
-        locale.getdefaultlocale()[0]
+            locale.getdefaultlocale()[0]
         self.data["locale_cura"] = self.cura_locale
 
         try:
@@ -226,7 +226,13 @@ class CrashHandler:
             self.data["plugins"] = {"[FAILED]": "0.0.0"}
 
         crash_info = "<b>" + catalog.i18nc("@label Cura version number", "Cura version") + ":</b> " + str(self.cura_version) + "<br/>"
-        crash_info += "<b>" + catalog.i18nc("@label", "Cura language") + ":</b> " + str(self.cura_locale) + "<br/>"
+        crash_info += (
+            "<b>"
+            + catalog.i18nc("@label", "Cura language")
+            + ":</b> "
+            + self.cura_locale
+            + "<br/>"
+        )
         crash_info += "<b>" + catalog.i18nc("@label", "OS language") + ":</b> " + str(self.data["locale_os"]) + "<br/>"
         crash_info += "<b>" + catalog.i18nc("@label Type of platform", "Platform") + ":</b> " + str(platform.platform()) + "<br/>"
         crash_info += "<b>" + catalog.i18nc("@label", "Qt version") + ":</b> " + str(QT_VERSION_STR) + "<br/>"
@@ -327,16 +333,9 @@ class CrashHandler:
         if len(filepath_directory_split) > 1:
             filepath = filepath_directory_split[1]
         directory, filename = os.path.split(filepath)
-        line = ""
-        if len(module_split) > 1:
-            line = int(module_split[1].lstrip("line "))
-        function = ""
-        if len(module_split) > 2:
-            function = module_split[2].lstrip("in ")
-        code = ""
-        if len(module) > 1:
-            code = module[1].lstrip(" ")
-
+        line = int(module_split[1].lstrip("line ")) if len(module_split) > 1 else ""
+        function = module_split[2].lstrip("in ") if len(module_split) > 2 else ""
+        code = module[1].lstrip(" ") if len(module) > 1 else ""
         # Using this workaround for a cross-platform path splitting
         split_path = []
         folder_name = ""
@@ -372,10 +371,19 @@ class CrashHandler:
                 # Not throw new exceptions
                 pass
 
-        exception_dict = dict()
-        exception_dict["traceback"] = {"summary": summary, "full_trace": trace}
-        exception_dict["location"] = {"path": filepath, "file": filename, "function": function, "code": code, "line": line,
-                                      "module_name": module_name, "version": module_version, "is_plugin": isPlugin}
+        exception_dict = {
+            "traceback": {"summary": summary, "full_trace": trace},
+            "location": {
+                "path": filepath,
+                "file": filename,
+                "function": function,
+                "code": code,
+                "line": line,
+                "module_name": module_name,
+                "version": module_version,
+                "is_plugin": isPlugin,
+            },
+        }
         self.data["exception"] = exception_dict
 
         if with_sentry_sdk:
@@ -438,15 +446,15 @@ class CrashHandler:
             except Exception as e:  # We don't want any exception to cause problems
                 Logger.logException("e", "An exception occurred while trying to send crash report")
                 if not self.has_started:
-                    print("An exception occurred while trying to send crash report: %s" % e)
+                    print(f"An exception occurred while trying to send crash report: {e}")
         else:
             msg = "SentrySDK is not available and the report could not be sent."
             Logger.logException("e", msg)
             if not self.has_started:
                 print(msg)
-                print("Exception type: {}".format(self.exception_type))
-                print("Value: {}".format(self.value))
-                print("Traceback: {}".format(self.traceback))
+                print(f"Exception type: {self.exception_type}")
+                print(f"Value: {self.value}")
+                print(f"Traceback: {self.traceback}")
 
         os._exit(1)
 

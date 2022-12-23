@@ -91,7 +91,6 @@ class PickingPass(RenderPass):
         """
 
         distance = self.getPickedDepth(x, y)
-        camera = self._scene.getActiveCamera()
-        if camera:
+        if camera := self._scene.getActiveCamera():
             return camera.getRay(x, y).getPointAlongRay(distance)
         return Vector()

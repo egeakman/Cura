@@ -57,7 +57,7 @@ class ThreeMFReader(MeshReader):
         return self._empty_project
 
     def _createMatrixFromTransformationString(self, transformation: str) -> Matrix:
-        if transformation == "":
+        if not transformation:
             return Matrix()
 
         split_transformation = transformation.split()
@@ -103,12 +103,8 @@ class ThreeMFReader(MeshReader):
             node_name = ""
             node_id = ""
 
-        if node_name == "":
-            if file_name != "":
-                node_name = os.path.basename(file_name)
-            else:
-                node_name = "Object {}".format(node_id)
-
+        if not node_name:
+            node_name = os.path.basename(file_name) if file_name else f"Object {node_id}"
         active_build_plate = CuraApplication.getInstance().getMultiBuildPlateModel().activeBuildPlate
 
         um_node = CuraSceneNode() # This adds a SettingOverrideDecorator
@@ -138,24 +134,19 @@ class ThreeMFReader(MeshReader):
             um_node.setMeshData(mesh_data)
 
         for child in savitar_node.getChildren():
-            child_node = self._convertSavitarNodeToUMNode(child)
-            if child_node:
+            if child_node := self._convertSavitarNodeToUMNode(child):
                 um_node.addChild(child_node)
 
         if um_node.getMeshData() is None and len(um_node.getChildren()) == 0:
             return None
 
-        settings = savitar_node.getSettings()
-
-        # Add the setting override decorator, so we can add settings to this node.
-        if settings:
-            global_container_stack = CuraApplication.getInstance().getGlobalContainerStack()
-
-            # Ensure the correct next container for the SettingOverride decorator is set.
-            if global_container_stack:
-                default_stack = ExtruderManager.getInstance().getExtruderStack(0)
-
-                if default_stack:
+        if settings := savitar_node.getSettings():
+            if (
+                global_container_stack := CuraApplication.getInstance().getGlobalContainerStack()
+            ):
+                if default_stack := ExtruderManager.getInstance().getExtruderStack(
+                    0
+                ):
                     um_node.callDecoration("setActiveExtruder", default_stack.getId())
 
                 # Get the definition & set it
@@ -169,8 +160,9 @@ class ThreeMFReader(MeshReader):
 
                 # Extruder_nr is a special case.
                 if key == "extruder_nr":
-                    extruder_stack = ExtruderManager.getInstance().getExtruderStack(int(setting_value))
-                    if extruder_stack:
+                    if extruder_stack := ExtruderManager.getInstance().getExtruderStack(
+                        int(setting_value)
+                    ):
                         um_node.callDecoration("setActiveExtruder", extruder_stack.getId())
                     else:
                         Logger.log("w", "Unable to find extruder in position %s", setting_value)
@@ -269,7 +261,7 @@ class ThreeMFReader(MeshReader):
 
                 result.append(um_node)
 
-            if len(result) == 0:
+            if not result:
                 self._empty_project = True
 
         except Exception:

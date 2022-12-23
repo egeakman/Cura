@@ -134,9 +134,7 @@ class ContainerTree:
             definition_id.
             """
 
-            if definition_id not in self:
-                return default
-            return self[definition_id]
+            return default if definition_id not in self else self[definition_id]
 
         def is_loaded(self, definition_id: str) -> bool:
             """Returns whether we've already cached this definition's node.

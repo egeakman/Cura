@@ -54,8 +54,11 @@ class ActiveIntentQualitiesModel(ListModel):
             self._updateDelayed()
 
     def _update(self):
-        active_extruder_stack = cura.CuraApplication.CuraApplication.getInstance().getMachineManager().activeStack
-        if active_extruder_stack:
+        if (
+            active_extruder_stack := cura.CuraApplication.CuraApplication.getInstance()
+            .getMachineManager()
+            .activeStack
+        ):
             self._intent_category = active_extruder_stack.intent.getMetaDataEntry("intent_category", "")
 
         new_items: List[Dict[str, Any]] = []
@@ -116,16 +119,17 @@ class ActiveIntentQualitiesModel(ListModel):
 
             layer_height = fetchLayerHeight(quality_group)
 
-            for intent_id, intent_node in quality_node.intents.items():
-                if intent_node.intent_category != self._intent_category:
-                    continue
-
-                extruder_intents.append({"name": quality_group.name,
-                                         "display_text": f"<b>{quality_group.name}</b> - {layer_height}mm",
-                                         "quality_type": quality_group.quality_type,
-                                         "layer_height": layer_height,
-                                         "intent_category": self._intent_category
-                                         })
+            extruder_intents.extend(
+                {
+                    "name": quality_group.name,
+                    "display_text": f"<b>{quality_group.name}</b> - {layer_height}mm",
+                    "quality_type": quality_group.quality_type,
+                    "layer_height": layer_height,
+                    "intent_category": self._intent_category,
+                }
+                for intent_id, intent_node in quality_node.intents.items()
+                if intent_node.intent_category == self._intent_category
+            )
         return extruder_intents
 
 

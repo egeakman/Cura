@@ -74,8 +74,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
 
         node.boundingBoxChanged.connect(self._onChanged)
 
-        per_object_stack = node.callDecoration("getStack")
-        if per_object_stack:
+        if per_object_stack := node.callDecoration("getStack"):
             per_object_stack.propertyChanged.connect(self._onSettingValueChanged)
 
         self._onChanged()
@@ -94,10 +93,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
             return None
 
         hull = self._compute2DConvexHull()
-        if hull is None:
-            return None
-
-        return self._add2DAdhesionMargin(hull)
+        return None if hull is None else self._add2DAdhesionMargin(hull)
 
     def getConvexHull(self) -> Optional[Polygon]:
         """Get the unmodified 2D projected convex hull of the node (if any)
@@ -135,9 +131,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
     @staticmethod
     def hasGroupAsParent(node: "SceneNode") -> bool:
         parent = node.getParent()
-        if parent is None:
-            return False
-        return bool(parent.callDecoration("isGroup"))
+        return False if parent is None else bool(parent.callDecoration("isGroup"))
 
     def getConvexHullHead(self) -> Optional[Polygon]:
         """Get convex hull of the object + head size
@@ -153,8 +147,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
             head_with_fans = self._compute2DConvexHeadMin()
             if head_with_fans is None:
                 return None
-            head_with_fans_with_adhesion_margin = self._add2DAdhesionMargin(head_with_fans)
-            return head_with_fans_with_adhesion_margin
+            return self._add2DAdhesionMargin(head_with_fans)
         return None
 
     def getConvexHullBoundary(self) -> Optional[Polygon]:
@@ -180,12 +173,11 @@ class ConvexHullDecorator(SceneNodeDecorator):
         In case of printing all at once this is the same as convex hull (no individual adhesion)
         For one at the time this includes the adhesion area
         """
-        if self._isSingularOneAtATimeNode():
-            # In one-at-a-time mode, every printed object gets it's own adhesion
-            printing_area = self.getAdhesionArea()
-        else:
-            printing_area = self.getConvexHull()
-        return printing_area
+        return (
+            self.getAdhesionArea()
+            if self._isSingularOneAtATimeNode()
+            else self.getConvexHull()
+        )
 
     def recomputeConvexHullDelayed(self) -> None:
         """The same as recomputeConvexHull, but using a timer if it was set."""
@@ -238,8 +230,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
         if self._node.callDecoration("isGroup"):
             points = numpy.zeros((0, 2), dtype = numpy.int32)
             for child in self._node.getChildren():
-                child_hull = child.callDecoration("_compute2DConvexHull")
-                if child_hull:
+                if child_hull := child.callDecoration("_compute2DConvexHull"):
                     try:
                         points = numpy.append(points, child_hull.getPoints(), axis = 0)
                     except ValueError:
@@ -259,8 +250,6 @@ class ConvexHullDecorator(SceneNodeDecorator):
             # Store the result in the cache
             self._2d_convex_hull_group_child_polygon = child_polygon
             self._2d_convex_hull_group_result = offset_hull
-
-            return offset_hull
 
         else:
             convex_hull = Polygon([])
@@ -310,7 +299,8 @@ class ConvexHullDecorator(SceneNodeDecorator):
             self._2d_convex_hull_mesh_world_transform = world_transform
             self._2d_convex_hull_mesh_result = convex_hull
 
-            return offset_hull
+
+        return offset_hull
 
     def _getHeadAndFans(self) -> Polygon:
         if not self._global_stack:
@@ -322,8 +312,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
         return polygon.translate(-offset_x, -offset_y)
 
     def _compute2DConvexHeadFull(self) -> Optional[Polygon]:
-        convex_hull = self._compute2DConvexHull()
-        if convex_hull:
+        if convex_hull := self._compute2DConvexHull():
             return convex_hull.getMinkowskiHull(self._getHeadAndFans())
         return None
 
@@ -332,9 +321,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
         mirrored = head_and_fans.mirror([0, 0], [0, 1]).mirror([0, 0], [1, 0])  # Mirror horizontally & vertically.
         head_and_fans = self._getHeadAndFans().intersectionConvexHulls(mirrored)
 
-        # Min head hull is used for the push free
-        convex_hull = self._compute2DConvexHull()
-        if convex_hull:
+        if convex_hull := self._compute2DConvexHull():
             return convex_hull.getMinkowskiHull(head_and_fans)
         return None
 
@@ -419,16 +406,15 @@ class ConvexHullDecorator(SceneNodeDecorator):
         if self._getSettingProperty("mold_enabled", "value"):
             mold_width = self._getSettingProperty("mold_width", "value")
         hull_offset = horizontal_expansion + mold_width
-        if hull_offset > 0: #TODO: Implement Minkowski subtraction for if the offset < 0.
-            expansion_polygon = Polygon(numpy.array([
-                [-hull_offset, -hull_offset],
-                [-hull_offset, hull_offset],
-                [hull_offset, hull_offset],
-                [hull_offset, -hull_offset]
-            ], numpy.float32))
-            return result.getMinkowskiHull(expansion_polygon)
-        else:
+        if hull_offset <= 0:
             return result
+        expansion_polygon = Polygon(numpy.array([
+            [-hull_offset, -hull_offset],
+            [-hull_offset, hull_offset],
+            [hull_offset, hull_offset],
+            [hull_offset, -hull_offset]
+        ], numpy.float32))
+        return result.getMinkowskiHull(expansion_polygon)
 
     def _onChanged(self, *args) -> None:
         self._raft_thickness = self._build_volume.getRaftThickness()
@@ -459,31 +445,26 @@ class ConvexHullDecorator(SceneNodeDecorator):
 
         if self._global_stack is None or self._node is None:
             return None
-        per_mesh_stack = self._node.callDecoration("getStack")
-        if per_mesh_stack:
+        if per_mesh_stack := self._node.callDecoration("getStack"):
             return per_mesh_stack.getProperty(setting_key, prop)
 
         extruder_index = self._global_stack.getProperty(setting_key, "limit_to_extruder")
-        if extruder_index == "-1":
-            # No limit_to_extruder
-            extruder_stack_id = self._node.callDecoration("getActiveExtruder")
-            if not extruder_stack_id:
-                # Decoration doesn't exist
-                extruder_stack_id = ExtruderManager.getInstance().extruderIds["0"]
-            extruder_stack = ContainerRegistry.getInstance().findContainerStacks(id = extruder_stack_id)[0]
-            return extruder_stack.getProperty(setting_key, prop)
-        else:
+        if extruder_index != "-1":
             # Limit_to_extruder is set. The global stack handles this then
             return self._global_stack.getProperty(setting_key, prop)
+        extruder_stack_id = (
+            self._node.callDecoration("getActiveExtruder")
+            or ExtruderManager.getInstance().extruderIds["0"]
+        )
+        extruder_stack = ContainerRegistry.getInstance().findContainerStacks(id = extruder_stack_id)[0]
+        return extruder_stack.getProperty(setting_key, prop)
 
     def __isDescendant(self, root: "SceneNode", node: Optional["SceneNode"]) -> bool:
         """Returns True if node is a descendant or the same as the root node."""
 
         if node is None:
             return False
-        if root is node:
-            return True
-        return self.__isDescendant(root, node.getParent())
+        return True if root is node else self.__isDescendant(root, node.getParent())
 
     def _isSingularOneAtATimeNode(self) -> bool:
         """True if print_sequence is one_at_a_time and _node is not part of a group"""

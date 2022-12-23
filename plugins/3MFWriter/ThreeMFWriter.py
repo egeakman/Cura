@@ -61,17 +61,17 @@ class ThreeMFWriter(MeshWriter):
 
     def _convertMatrixToString(self, matrix):
         result = ""
-        result += str(matrix._data[0, 0]) + " "
-        result += str(matrix._data[1, 0]) + " "
-        result += str(matrix._data[2, 0]) + " "
-        result += str(matrix._data[0, 1]) + " "
-        result += str(matrix._data[1, 1]) + " "
-        result += str(matrix._data[2, 1]) + " "
-        result += str(matrix._data[0, 2]) + " "
-        result += str(matrix._data[1, 2]) + " "
-        result += str(matrix._data[2, 2]) + " "
-        result += str(matrix._data[0, 3]) + " "
-        result += str(matrix._data[1, 3]) + " "
+        result += f"{str(matrix._data[0, 0])} "
+        result += f"{str(matrix._data[1, 0])} "
+        result += f"{str(matrix._data[2, 0])} "
+        result += f"{str(matrix._data[0, 1])} "
+        result += f"{str(matrix._data[1, 1])} "
+        result += f"{str(matrix._data[2, 1])} "
+        result += f"{str(matrix._data[0, 2])} "
+        result += f"{str(matrix._data[1, 2])} "
+        result += f"{str(matrix._data[2, 2])} "
+        result += f"{str(matrix._data[0, 3])} "
+        result += f"{str(matrix._data[1, 3])} "
         result += str(matrix._data[2, 3])
         return result
 
@@ -123,7 +123,7 @@ class ThreeMFWriter(MeshWriter):
 
             # Get values for all changed settings & save them.
             for key in changed_setting_keys:
-                savitar_node.setSetting("cura:" + key, str(stack.getProperty(key, "value")))
+                savitar_node.setSetting(f"cura:{key}", str(stack.getProperty(key, "value")))
 
         # Store the metadata.
         for key, value in um_node.metadata.items():
@@ -161,11 +161,15 @@ class ThreeMFWriter(MeshWriter):
             relations_file = zipfile.ZipInfo("_rels/.rels")
             relations_file.compress_type = zipfile.ZIP_DEFLATED
             relations_element = ET.Element("Relationships", xmlns = self._namespaces["relationships"])
-            model_relation_element = ET.SubElement(relations_element, "Relationship", Target = "/" + MODEL_PATH, Id = "rel0", Type = "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel")
+            model_relation_element = ET.SubElement(
+                relations_element,
+                "Relationship",
+                Target=f"/{MODEL_PATH}",
+                Id="rel0",
+                Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel",
+            )
 
-            # Attempt to add a thumbnail
-            snapshot = self._createSnapshot()
-            if snapshot:
+            if snapshot := self._createSnapshot():
                 thumbnail_buffer = QBuffer()
                 thumbnail_buffer.open(QBuffer.OpenModeFlag.ReadWrite)
                 snapshot.save(thumbnail_buffer, "PNG")
@@ -177,7 +181,13 @@ class ThreeMFWriter(MeshWriter):
                 # Add PNG to content types file
                 thumbnail_type = ET.SubElement(content_types, "Default", Extension = "png", ContentType = "image/png")
                 # Add thumbnail relation to _rels/.rels file
-                thumbnail_relation_element = ET.SubElement(relations_element, "Relationship", Target = "/" + THUMBNAIL_PATH, Id = "rel1", Type = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail")
+                thumbnail_relation_element = ET.SubElement(
+                    relations_element,
+                    "Relationship",
+                    Target=f"/{THUMBNAIL_PATH}",
+                    Id="rel1",
+                    Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail",
+                )
 
             # Write material metadata
             material_metadata = self._getMaterialPackageMetadata()
@@ -206,10 +216,9 @@ class ThreeMFWriter(MeshWriter):
             transformation_matrix._data[2, 1] = 1
             transformation_matrix._data[2, 2] = 0
 
-            global_container_stack = Application.getInstance().getGlobalContainerStack()
-            # Second step: 3MF defines the left corner of the machine as center, whereas cura uses the center of the
-            # build volume.
-            if global_container_stack:
+            if (
+                global_container_stack := Application.getInstance().getGlobalContainerStack()
+            ):
                 translation_vector = Vector(x=global_container_stack.getProperty("machine_width", "value") / 2,
                                             y=global_container_stack.getProperty("machine_depth", "value") / 2,
                                             z=0)
@@ -221,13 +230,14 @@ class ThreeMFWriter(MeshWriter):
             for node in nodes:
                 if node == root_node:
                     for root_child in node.getChildren():
-                        savitar_node = self._convertUMNodeToSavitarNode(root_child, transformation_matrix)
-                        if savitar_node:
+                        if savitar_node := self._convertUMNodeToSavitarNode(
+                            root_child, transformation_matrix
+                        ):
                             savitar_scene.addSceneNode(savitar_node)
-                else:
-                    savitar_node = self._convertUMNodeToSavitarNode(node, transformation_matrix)
-                    if savitar_node:
-                        savitar_scene.addSceneNode(savitar_node)
+                elif savitar_node := self._convertUMNodeToSavitarNode(
+                    node, transformation_matrix
+                ):
+                    savitar_scene.addSceneNode(savitar_node)
 
             parser = Savitar.ThreeMFParser()
             scene_string = parser.sceneToString(savitar_scene)
@@ -286,10 +296,12 @@ class ThreeMFWriter(MeshWriter):
                 Logger.info(f"Could not find package for material in extruder {extruder.id}, skipping.")
                 continue
 
-            material_metadata = {"id": package_id,
-                                 "display_name": package_data.get("display_name") if package_data.get("display_name") else "",
-                                 "package_version": package_data.get("package_version") if package_data.get("package_version") else "",
-                                 "sdk_version_semver": package_data.get("sdk_version_semver") if package_data.get("sdk_version_semver") else ""}
+            material_metadata = {
+                "id": package_id,
+                "display_name": package_data.get("display_name") or "",
+                "package_version": package_data.get("package_version") or "",
+                "sdk_version_semver": package_data.get("sdk_version_semver") or "",
+            }
 
             metadata[package_id] = material_metadata
 

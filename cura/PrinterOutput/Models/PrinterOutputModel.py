@@ -257,51 +257,37 @@ class PrinterOutputModel(QObject):
     # Does the printer support pre-heating the bed at all
     @pyqtProperty(bool, constant = True)
     def canPreHeatBed(self) -> bool:
-        if self._controller:
-            return self._controller.can_pre_heat_bed
-        return False
+        return self._controller.can_pre_heat_bed if self._controller else False
 
     # Does the printer support pre-heating the bed at all
     @pyqtProperty(bool, constant = True)
     def canPreHeatHotends(self) -> bool:
-        if self._controller:
-            return self._controller.can_pre_heat_hotends
-        return False
+        return self._controller.can_pre_heat_hotends if self._controller else False
 
     # Does the printer support sending raw G-code at all
     @pyqtProperty(bool, constant = True)
     def canSendRawGcode(self) -> bool:
-        if self._controller:
-            return self._controller.can_send_raw_gcode
-        return False
+        return self._controller.can_send_raw_gcode if self._controller else False
 
     # Does the printer support pause at all
     @pyqtProperty(bool, constant = True)
     def canPause(self) -> bool:
-        if self._controller:
-            return self._controller.can_pause
-        return False
+        return self._controller.can_pause if self._controller else False
 
     # Does the printer support abort at all
     @pyqtProperty(bool, constant = True)
     def canAbort(self) -> bool:
-        if self._controller:
-            return self._controller.can_abort
-        return False
+        return self._controller.can_abort if self._controller else False
 
     # Does the printer support manual control at all
     @pyqtProperty(bool, constant = True)
     def canControlManually(self) -> bool:
-        if self._controller:
-            return self._controller.can_control_manually
-        return False
+        return self._controller.can_control_manually if self._controller else False
 
     # Does the printer support upgrading firmware
     @pyqtProperty(bool, notify = canUpdateFirmwareChanged)
     def canUpdateFirmware(self) -> bool:
-        if self._controller:
-            return self._controller.can_update_firmware
-        return False
+        return self._controller.can_update_firmware if self._controller else False
 
     # Stub to connect UM.Signal to pyqtSignal
     def _onControllerCanUpdateFirmwareChanged(self) -> None:

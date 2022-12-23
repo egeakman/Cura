@@ -48,7 +48,7 @@ class DigitalFactoryFileResponse(BaseModel):
         super().__init__(**kwargs)
 
     def __repr__(self) -> str:
-        return "File: {}, from: {}, File ID: {}, Project ID: {}, Download URL: {}".format(self.file_name, self.username, self.file_id, self.library_project_id, self.download_url)
+        return f"File: {self.file_name}, from: {self.username}, File ID: {self.file_id}, Project ID: {self.library_project_id}, Download URL: {self.download_url}"
 
     # Validates the model, raising an exception if the model is invalid.
     def validate(self) -> None:

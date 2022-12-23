@@ -22,11 +22,14 @@ def api(since_version: str) -> Callable:
     """
     # Make sure that APi versions are semantic versions
     if not SEMANTIC_VERSION_REGEX.fullmatch(since_version):
-        raise ValueError("API since_version [%s] is not a semantic version." % since_version)
+        raise ValueError(
+            f"API since_version [{since_version}] is not a semantic version."
+        )
 
     def api_decorator(function):
         @functools.wraps(function)
         def api_wrapper(*args, **kwargs):
             return function(*args, **kwargs)
         return api_wrapper
+
     return api_decorator

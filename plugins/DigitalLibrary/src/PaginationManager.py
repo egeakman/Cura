@@ -18,9 +18,7 @@ class PaginationManager:
         self.meta = None
 
         if meta:
-            page = None
-            if "page" in meta:
-                page = PaginationMetadata(**meta["page"])
+            page = PaginationMetadata(**meta["page"]) if "page" in meta else None
             self.meta = ResponseMeta(page)
 
     def setLinks(self, links: Optional[Dict[str, str]]) -> None:

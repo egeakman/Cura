@@ -151,15 +151,21 @@ class CuraApplication(QtApplication):
     pyqtEnum(ResourceTypes)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(name = ApplicationMetadata.CuraAppName,
-                         app_display_name = ApplicationMetadata.CuraAppDisplayName,
-                         version = ApplicationMetadata.CuraVersion if not ApplicationMetadata.IsAlternateVersion else ApplicationMetadata.CuraBuildType,
-                         latest_url = ApplicationMetadata.CuraLatestURL,
-                         api_version = ApplicationMetadata.CuraSDKVersion,
-                         build_type = ApplicationMetadata.CuraBuildType,
-                         is_debug_mode = ApplicationMetadata.CuraDebugMode,
-                         tray_icon_name = "cura-icon-32.png" if not ApplicationMetadata.IsAlternateVersion else "cura-icon-32_wip.png",
-                         **kwargs)
+        super().__init__(
+            name=ApplicationMetadata.CuraAppName,
+            app_display_name=ApplicationMetadata.CuraAppDisplayName,
+            version=ApplicationMetadata.CuraBuildType
+            if ApplicationMetadata.IsAlternateVersion
+            else ApplicationMetadata.CuraVersion,
+            latest_url=ApplicationMetadata.CuraLatestURL,
+            api_version=ApplicationMetadata.CuraSDKVersion,
+            build_type=ApplicationMetadata.CuraBuildType,
+            is_debug_mode=ApplicationMetadata.CuraDebugMode,
+            tray_icon_name="cura-icon-32_wip.png"
+            if ApplicationMetadata.IsAlternateVersion
+            else "cura-icon-32.png",
+            **kwargs
+        )
 
         self.default_theme = "cura-light"
 
@@ -341,10 +347,9 @@ class CuraApplication(QtApplication):
 
         # If we use single instance, try to connect to the single instance server, send commands, and then exit.
         # If we cannot find an existing single instance server, this is the only instance, so just keep going.
-        if self._use_single_instance:
-            if self._single_instance.startClient():
-                Logger.log("i", "Single instance commands were sent, exiting")
-                sys.exit(0)
+        if self._use_single_instance and self._single_instance.startClient():
+            Logger.log("i", "Single instance commands were sent, exiting")
+            sys.exit(0)
 
     def __addExpectedResourceDirsAndSearchPaths(self):
         """Adds expected directory names and search paths for Resources."""
@@ -494,7 +499,16 @@ class CuraApplication(QtApplication):
 
         if not self.getIsHeadLess():
             try:
-                self.setWindowIcon(QIcon(Resources.getPath(Resources.Images, "cura-icon.png" if not ApplicationMetadata.IsAlternateVersion else "cura-icon_wip.png")))
+                self.setWindowIcon(
+                    QIcon(
+                        Resources.getPath(
+                            Resources.Images,
+                            "cura-icon_wip.png"
+                            if ApplicationMetadata.IsAlternateVersion
+                            else "cura-icon.png",
+                        )
+                    )
+                )
             except FileNotFoundError:
                 Logger.log("w", "Unable to find the window icon.")
 
@@ -592,7 +606,7 @@ class CuraApplication(QtApplication):
             "dialog_profile_path",
             "dialog_material_path"]:
 
-            preferences.addPreference("local_file/%s" % key, os.path.expanduser("~/"))
+            preferences.addPreference(f"local_file/{key}", os.path.expanduser("~/"))
 
         preferences.setDefault("local_file/last_used_type", "text/x-gcode")
 
@@ -769,14 +783,16 @@ class CuraApplication(QtApplication):
 
     @pyqtSlot(str, result = QUrl)
     def getDefaultPath(self, key):
-        default_path = self.getPreferences().getValue("local_file/%s" % key)
+        default_path = self.getPreferences().getValue(f"local_file/{key}")
         if os.path.exists(default_path):
             return QUrl.fromLocalFile(default_path)
         return QUrl()
 
     @pyqtSlot(str, str)
     def setDefaultPath(self, key, default_path):
-        self.getPreferences().setValue("local_file/%s" % key, QUrl(default_path).toLocalFile())
+        self.getPreferences().setValue(
+            f"local_file/{key}", QUrl(default_path).toLocalFile()
+        )
 
     def _loadPlugins(self) -> None:
         """Handle loading of all plugin types (and the backend explicitly)
@@ -789,12 +805,13 @@ class CuraApplication(QtApplication):
         self._plugin_registry.addType("profile_reader", self._addProfileReader)
         self._plugin_registry.addType("profile_writer", self._addProfileWriter)
 
-        if Platform.isLinux():
-            lib_suffixes = {"", "64", "32", "x32"}  # A few common ones on different distributions.
-        else:
-            lib_suffixes = {""}
+        lib_suffixes = {"", "64", "32", "x32"} if Platform.isLinux() else {""}
         for suffix in lib_suffixes:
-            self._plugin_registry.addPluginLocation(os.path.join(QtApplication.getInstallPrefix(), "lib" + suffix, "cura"))
+            self._plugin_registry.addPluginLocation(
+                os.path.join(
+                    QtApplication.getInstallPrefix(), f"lib{suffix}", "cura"
+                )
+            )
 
         if not hasattr(sys, "frozen"):
             self._plugin_registry.addPluginLocation(os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "plugins"))
@@ -922,8 +939,7 @@ class CuraApplication(QtApplication):
 
         controller = self.getController()
 
-        t = controller.getTool("TranslateTool")
-        if t:
+        if t := controller.getTool("TranslateTool"):
             t.setEnabledAxis([ToolHandle.XAxis, ToolHandle.YAxis, ToolHandle.ZAxis])
 
         Selection.selectionChanged.connect(self.onSelectionChanged)
@@ -944,9 +960,7 @@ class CuraApplication(QtApplication):
         camera.lookAt(Vector(0, 0, 0))
         controller.getScene().setActiveCamera("3d")
 
-        # Initialize camera tool
-        camera_tool = controller.getTool("CameraTool")
-        if camera_tool:
+        if camera_tool := controller.getTool("CameraTool"):
             camera_tool.setOrigin(Vector(0, 30, 0))
             camera_tool.setZoomRange(0.1, 2000)
 
@@ -1254,22 +1268,20 @@ class CuraApplication(QtApplication):
                 if not self.getController().getActiveTool().getEnabled():
                     # Default
                     self.getController().setActiveTool("TranslateTool")
-            else:
-                if self._previous_active_tool:
-                    self.getController().setActiveTool(self._previous_active_tool)
-                    if not self.getController().getActiveTool().getEnabled():
-                        self.getController().setActiveTool("TranslateTool")
-                    self._previous_active_tool = None
-                else:
-                    # Default
+            elif self._previous_active_tool:
+                self.getController().setActiveTool(self._previous_active_tool)
+                if not self.getController().getActiveTool().getEnabled():
                     self.getController().setActiveTool("TranslateTool")
+                self._previous_active_tool = None
+            else:
+                # Default
+                self.getController().setActiveTool("TranslateTool")
 
             if self.getPreferences().getValue("view/center_on_select"):
                 self._center_after_select = True
-        else:
-            if self.getController().getActiveTool():
-                self._previous_active_tool = self.getController().getActiveTool().getPluginId()
-                self.getController().setActiveTool(None)
+        elif self.getController().getActiveTool():
+            self._previous_active_tool = self.getController().getActiveTool().getPluginId()
+            self.getController().setActiveTool(None)
 
     def _onToolOperationStopped(self, event):
         if self._center_after_select and Selection.getSelectedObject(0) is not None:
@@ -1337,7 +1349,7 @@ class CuraApplication(QtApplication):
             self._scene_bounding_box = scene_bounding_box
             self.sceneBoundingBoxChanged.emit()
 
-        self._platform_activity = True if count > 0 else False
+        self._platform_activity = count > 0
         self.activityChanged.emit()
 
     @pyqtSlot()
@@ -1496,10 +1508,8 @@ class CuraApplication(QtApplication):
 
         objects_in_filename = {}  # type: Dict[str, List[CuraSceneNode]]
         for node in nodes:
-            mesh_data = node.getMeshData()
-            if mesh_data:
-                file_name = mesh_data.getFileName()
-                if file_name:
+            if mesh_data := node.getMeshData():
+                if file_name := mesh_data.getFileName():
                     if file_name not in objects_in_filename:
                         objects_in_filename[file_name] = []
                     if file_name in objects_in_filename:
@@ -1520,8 +1530,7 @@ class CuraApplication(QtApplication):
 
     @pyqtSlot("QStringList")
     def setExpandedCategories(self, categories: List[str]) -> None:
-        categories = list(set(categories))
-        categories.sort()
+        categories = sorted(set(categories))
         joined = ";".join(categories)
         if joined != self.getPreferences().getValue("cura/categories_expanded"):
             self.getPreferences().setValue("cura/categories_expanded", joined)
@@ -1553,9 +1562,9 @@ class CuraApplication(QtApplication):
                 object_centers.append(center)
 
         if object_centers:
-            middle_x = sum([v.x for v in object_centers]) / len(object_centers)
-            middle_y = sum([v.y for v in object_centers]) / len(object_centers)
-            middle_z = sum([v.z for v in object_centers]) / len(object_centers)
+            middle_x = sum(v.x for v in object_centers) / len(object_centers)
+            middle_y = sum(v.y for v in object_centers) / len(object_centers)
+            middle_z = sum(v.z for v in object_centers) / len(object_centers)
             offset = Vector(middle_x, middle_y, middle_z)
         else:
             offset = Vector(0, 0, 0)
@@ -1601,9 +1610,9 @@ class CuraApplication(QtApplication):
                     object_centers.append(center)
 
             if object_centers:
-                middle_x = sum([v.x for v in object_centers]) / len(object_centers)
-                middle_y = sum([v.y for v in object_centers]) / len(object_centers)
-                middle_z = sum([v.z for v in object_centers]) / len(object_centers)
+                middle_x = sum(v.x for v in object_centers) / len(object_centers)
+                middle_y = sum(v.y for v in object_centers) / len(object_centers)
+                middle_z = sum(v.z for v in object_centers) / len(object_centers)
                 offset = Vector(middle_x, middle_y, middle_z)
             else:
                 offset = Vector(0, 0, 0)
@@ -1676,9 +1685,7 @@ class CuraApplication(QtApplication):
                 # see GroupDecorator._onChildrenChanged
 
     def _createSplashScreen(self) -> Optional[CuraSplashScreen.CuraSplashScreen]:
-        if self._is_headless:
-            return None
-        return CuraSplashScreen.CuraSplashScreen()
+        return None if self._is_headless else CuraSplashScreen.CuraSplashScreen()
 
     def _onActiveMachineChanged(self):
         pass
@@ -1709,7 +1716,9 @@ class CuraApplication(QtApplication):
                 object_found = True
                 break
         if not object_found:
-            Logger.warning("The object with id {} no longer exists! Keeping the old version in the scene.".format(job_result_node.getId()))
+            Logger.warning(
+                f"The object with id {job_result_node.getId()} no longer exists! Keeping the old version in the scene."
+            )
             return
         if not mesh_data:
             Logger.log("w", "Could not find a mesh in reloaded node.")
@@ -1728,8 +1737,7 @@ class CuraApplication(QtApplication):
 
     @pyqtSlot("QSize")
     def setMinimumWindowSize(self, size):
-        main_window = self.getMainWindow()
-        if main_window:
+        if main_window := self.getMainWindow():
             main_window.setMinimumSize(size)
 
     def getBuildVolume(self):
@@ -1862,24 +1870,26 @@ class CuraApplication(QtApplication):
         target_build_plate = self.getMultiBuildPlateModel().activeBuildPlate
 
         root = self.getController().getScene().getRoot()
-        fixed_nodes = []
-        for node_ in DepthFirstIterator(root):
-            if node_.callDecoration("isSliceable") and node_.callDecoration("getBuildPlateNumber") == target_build_plate:
-                fixed_nodes.append(node_)
-
+        fixed_nodes = [
+            node_
+            for node_ in DepthFirstIterator(root)
+            if node_.callDecoration("isSliceable")
+            and node_.callDecoration("getBuildPlateNumber") == target_build_plate
+        ]
         default_extruder_position = self.getMachineManager().defaultExtruderPosition
         default_extruder_id = self._global_container_stack.extruderList[int(default_extruder_position)].getId()
 
         select_models_on_load = self.getPreferences().getValue("cura/select_models_on_load")
 
         nodes_to_arrange = []  # type: List[CuraSceneNode]
-        
-        fixed_nodes = []
-        for node_ in DepthFirstIterator(self.getController().getScene().getRoot()):
-            # Only count sliceable objects
-            if node_.callDecoration("isSliceable"):
-                fixed_nodes.append(node_)
 
+        fixed_nodes = [
+            node_
+            for node_ in DepthFirstIterator(
+                self.getController().getScene().getRoot()
+            )
+            if node_.callDecoration("isSliceable")
+        ]
         for original_node in nodes:
             # Create a CuraSceneNode just if the original node is not that type
             if isinstance(original_node, CuraSceneNode):
@@ -1897,7 +1907,7 @@ class CuraApplication(QtApplication):
             node.setName(os.path.basename(file_name))
             self.getBuildVolume().checkBoundsAndUpdate(node)
 
-            is_non_sliceable = "." + file_extension in self._non_sliceable_extensions
+            is_non_sliceable = f".{file_extension}" in self._non_sliceable_extensions
 
             if is_non_sliceable:
                 # Need to switch first to the preview stage and then to layer view
@@ -1919,17 +1929,16 @@ class CuraApplication(QtApplication):
                 if not child.getDecorator(ConvexHullDecorator):
                     child.addDecorator(ConvexHullDecorator())
 
-            if file_extension != "3mf":
-                if node.callDecoration("isSliceable"):
-                    # Ensure that the bottom of the bounding box is on the build plate
-                    if node.getBoundingBox():
-                        center_y = node.getWorldPosition().y - node.getBoundingBox().bottom
-                    else:
-                        center_y = 0
+            if file_extension != "3mf" and node.callDecoration("isSliceable"):
+                # Ensure that the bottom of the bounding box is on the build plate
+                if node.getBoundingBox():
+                    center_y = node.getWorldPosition().y - node.getBoundingBox().bottom
+                else:
+                    center_y = 0
 
-                    node.translate(Vector(0, center_y, 0))
+                node.translate(Vector(0, center_y, 0))
 
-                    nodes_to_arrange.append(node)
+                nodes_to_arrange.append(node)
 
             # This node is deep copied from some other node which already has a BuildPlateDecorator, but the deepcopy
             # of BuildPlateDecorator produces one that's associated with build plate -1. So, here we need to check if
@@ -2018,21 +2027,17 @@ class CuraApplication(QtApplication):
         has_active_machine = self._machine_manager.activeMachine is not None
         has_app_just_upgraded = self.hasJustUpdatedFromOldVersion()
 
-        # Only show the what's new dialog if there's no machine and we have just upgraded
-        show_whatsnew_only = has_active_machine and has_app_just_upgraded
-        return show_whatsnew_only
+        return has_active_machine and has_app_just_upgraded
 
     @pyqtSlot(result = int)
     def appWidth(self) -> int:
-        main_window = QtApplication.getInstance().getMainWindow()
-        if main_window:
+        if main_window := QtApplication.getInstance().getMainWindow():
             return main_window.width()
         return 0
 
     @pyqtSlot(result = int)
     def appHeight(self) -> int:
-        main_window = QtApplication.getInstance().getMainWindow()
-        if main_window:
+        if main_window := QtApplication.getInstance().getMainWindow():
             return main_window.height()
         return 0
 

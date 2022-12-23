@@ -27,11 +27,14 @@ class PerObjectContainerStack(CuraContainerStack):
             return None
 
         # Return the user defined value if present, otherwise, evaluate the value according to the default routine.
-        if self.getContainer(0).hasProperty(key, property_name):
-            if self.getContainer(0).getProperty(key, "state") == InstanceState.User:
-                result = super().getProperty(key, property_name, context)
-                context.popContainer()
-                return result
+        if (
+            self.getContainer(0).hasProperty(key, property_name)
+            and self.getContainer(0).getProperty(key, "state")
+            == InstanceState.User
+        ):
+            result = super().getProperty(key, property_name, context)
+            context.popContainer()
+            return result
 
         # Handle the "limit_to_extruder" property.
         limit_to_extruder = super().getProperty(key, "limit_to_extruder", context)
@@ -41,9 +44,11 @@ class PerObjectContainerStack(CuraContainerStack):
         # if this stack has the limit_to_extruder "not overridden", use the original limit_to_extruder as the current
         # limit_to_extruder, so the values retrieved will be from the perspective of the original limit_to_extruder
         # stack.
-        if limit_to_extruder == "-1":
-            if "original_limit_to_extruder" in context.context:
-                limit_to_extruder = context.context["original_limit_to_extruder"]
+        if (
+            limit_to_extruder == "-1"
+            and "original_limit_to_extruder" in context.context
+        ):
+            limit_to_extruder = context.context["original_limit_to_extruder"]
 
         if limit_to_extruder is not None and limit_to_extruder != "-1" and int(limit_to_extruder) <= len(global_stack.extruderList):
             # set the original limit_to_extruder if this is the first stack that has a non-overridden limit_to_extruder

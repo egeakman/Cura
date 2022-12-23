@@ -55,11 +55,11 @@ class SettingInheritanceManager(QObject):
         if not definitions:
             Logger.log("w", "Could not find definition for key [%s]", key)
             return []
-        result = []
-        for key in definitions[0].getAllKeys():
-            if key in self._settings_with_inheritance_warning:
-                result.append(key)
-        return result
+        return [
+            key
+            for key in definitions[0].getAllKeys()
+            if key in self._settings_with_inheritance_warning
+        ]
 
     @pyqtSlot(str, str, result = bool)
     def hasOverrides(self, key: str, extruder_index: str):
@@ -81,10 +81,11 @@ class SettingInheritanceManager(QObject):
             Logger.log("w", "Could not find definition for key [%s] (2)", key)
             return result
 
-        for key in definitions[0].getAllKeys():
-            if self._settingIsOverwritingInheritance(key, extruder_stack):
-                result.append(key)
-
+        result.extend(
+            key
+            for key in definitions[0].getAllKeys()
+            if self._settingIsOverwritingInheritance(key, extruder_stack)
+        )
         return result
 
     @pyqtSlot(str)
@@ -115,53 +116,56 @@ class SettingInheritanceManager(QObject):
             self._update_timer.start()  # Ensure that the settings_with_inheritance_warning list is populated.
 
     def _onPropertyChanged(self, key: str, property_name: str) -> None:
-        if (property_name == "value" or property_name == "enabled") and self._global_container_stack:
-            definitions = self._global_container_stack.definition.findDefinitions(key = key)  # type: List["SettingDefinition"]
-            if not definitions:
-                return
+        if (
+            property_name not in ["value", "enabled"]
+            or not self._global_container_stack
+        ):
+            return
+        definitions = self._global_container_stack.definition.findDefinitions(key = key)  # type: List["SettingDefinition"]
+        if not definitions:
+            return
 
-            has_overwritten_inheritance = self._settingIsOverwritingInheritance(key)
+        has_overwritten_inheritance = self._settingIsOverwritingInheritance(key)
 
-            settings_with_inheritance_warning_changed = False
+        settings_with_inheritance_warning_changed = False
 
-            # Check if the setting needs to be in the list.
-            if key not in self._settings_with_inheritance_warning and has_overwritten_inheritance:
-                self._settings_with_inheritance_warning.append(key)
+        # Check if the setting needs to be in the list.
+        if key not in self._settings_with_inheritance_warning and has_overwritten_inheritance:
+            self._settings_with_inheritance_warning.append(key)
+            settings_with_inheritance_warning_changed = True
+        elif key in self._settings_with_inheritance_warning and not has_overwritten_inheritance:
+            self._settings_with_inheritance_warning.remove(key)
+            settings_with_inheritance_warning_changed = True
+
+        parent = definitions[0].parent
+        # Find the topmost parent (Assumed to be a category)
+        if parent is not None:
+            while parent.parent is not None:
+                parent = parent.parent
+        else:
+            parent = definitions[0]  # Already at a category
+
+        if parent.key not in self._settings_with_inheritance_warning and has_overwritten_inheritance:
+            # Category was not in the list yet, so needs to be added now.
+            self._settings_with_inheritance_warning.append(parent.key)
+            settings_with_inheritance_warning_changed = True
+
+        elif parent.key in self._settings_with_inheritance_warning and not has_overwritten_inheritance:
+            # Category was in the list and one of it's settings is not overwritten.
+            if not self._recursiveCheck(parent):  # Check if any of it's children have overwritten inheritance.
+                self._settings_with_inheritance_warning.remove(parent.key)
                 settings_with_inheritance_warning_changed = True
-            elif key in self._settings_with_inheritance_warning and not has_overwritten_inheritance:
-                self._settings_with_inheritance_warning.remove(key)
-                settings_with_inheritance_warning_changed = True
 
-            parent = definitions[0].parent
-            # Find the topmost parent (Assumed to be a category)
-            if parent is not None:
-                while parent.parent is not None:
-                    parent = parent.parent
-            else:
-                parent = definitions[0]  # Already at a category
-
-            if parent.key not in self._settings_with_inheritance_warning and has_overwritten_inheritance:
-                # Category was not in the list yet, so needs to be added now.
-                self._settings_with_inheritance_warning.append(parent.key)
-                settings_with_inheritance_warning_changed = True
-
-            elif parent.key in self._settings_with_inheritance_warning and not has_overwritten_inheritance:
-                # Category was in the list and one of it's settings is not overwritten.
-                if not self._recursiveCheck(parent):  # Check if any of it's children have overwritten inheritance.
-                    self._settings_with_inheritance_warning.remove(parent.key)
-                    settings_with_inheritance_warning_changed = True
-
-            # Emit the signal if there was any change to the list.
-            if settings_with_inheritance_warning_changed:
-                self.settingsWithIntheritanceChanged.emit()
+        # Emit the signal if there was any change to the list.
+        if settings_with_inheritance_warning_changed:
+            self.settingsWithIntheritanceChanged.emit()
 
     def _recursiveCheck(self, definition: "SettingDefinition") -> bool:
         for child in definition.children:
             if child.key in self._settings_with_inheritance_warning:
                 return True
-            if child.children:
-                if self._recursiveCheck(child):
-                    return True
+            if child.children and self._recursiveCheck(child):
+                return True
         return False
 
     @pyqtProperty("QVariantList", notify = settingsWithIntheritanceChanged)
@@ -238,8 +242,7 @@ class SettingInheritanceManager(QObject):
 
         # Check all setting keys that we know of and see if they are overridden.
         for setting_key in self._global_container_stack.getAllKeys():
-            override = self._settingIsOverwritingInheritance(setting_key)
-            if override:
+            if override := self._settingIsOverwritingInheritance(setting_key):
                 self._settings_with_inheritance_warning.append(setting_key)
 
         # Check all the categories if any of their children have their inheritance overwritten.

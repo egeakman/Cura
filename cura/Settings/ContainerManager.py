@@ -46,7 +46,9 @@ class ContainerManager(QObject):
 
     def __init__(self, application: "CuraApplication") -> None:
         if ContainerManager.__instance is not None:
-            raise RuntimeError("Try to create singleton '%s' more than once" % self.__class__.__name__)
+            raise RuntimeError(
+                f"Try to create singleton '{self.__class__.__name__}' more than once"
+            )
         try:
             super().__init__(parent = application)
         except TypeError:
@@ -67,9 +69,7 @@ class ContainerManager(QObject):
         while entries:
             entry = entries.pop(0)
             result = result.get(entry, {})
-        if not result:
-            return ""
-        return str(result)
+        return str(result) if result else ""
 
     @pyqtSlot("QVariant", str, str)
     def setContainerMetaDataEntry(self, container_node: "ContainerNode", entry_name: str, entry_value: str) -> bool:
@@ -149,11 +149,11 @@ class ContainerManager(QObject):
         if not self._container_name_filters:
             self._updateContainerNameFilters()
 
-        filters = []
-        for filter_string, entry in self._container_name_filters.items():
-            if not type_name or entry["type"] == type_name:
-                filters.append(filter_string)
-
+        filters = [
+            filter_string
+            for filter_string, entry in self._container_name_filters.items()
+            if not type_name or entry["type"] == type_name
+        ]
         filters.append("All Files (*)")
         return filters
 
@@ -200,14 +200,13 @@ class ContainerManager(QObject):
             if file_url.endswith(suffix):
                 break
         else:
-            file_url += "." + mime_type.preferredSuffix
+            file_url += f".{mime_type.preferredSuffix}"
 
-        if not Platform.isWindows():
-            if os.path.exists(file_url):
-                result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
-                                              catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_url))
-                if result == QMessageBox.StandardButton.No:
-                    return {"status": "cancelled", "message": "User cancelled"}
+        if not Platform.isWindows() and os.path.exists(file_url):
+            result = QMessageBox.question(None, catalog.i18nc("@title:window", "File Already Exists"),
+                                          catalog.i18nc("@label Don't translate the XML tag <filename>!", "The file <filename>{0}</filename> already exists. Are you sure you want to overwrite it?").format(file_url))
+            if result == QMessageBox.StandardButton.No:
+                return {"status": "cancelled", "message": "User cancelled"}
 
         try:
             contents = container.serialize()
@@ -308,7 +307,13 @@ class ContainerManager(QObject):
             quality_changes = stack.qualityChanges
 
             if quality_changes.getId() == "empty_quality_changes":
-                quality_changes = InstanceContainer(container_registry.uniqueName((stack.getId() + "_" + current_quality_changes_name).lower().replace(" ", "_")))
+                quality_changes = InstanceContainer(
+                    container_registry.uniqueName(
+                        f"{stack.getId()}_{current_quality_changes_name}".lower().replace(
+                            " ", "_"
+                        )
+                    )
+                )
                 quality_changes.setName(current_quality_changes_name)
                 quality_changes.setMetaDataEntry("type", "quality_changes")
                 quality_changes.setMetaDataEntry("quality_type", current_quality_type)
@@ -415,8 +420,7 @@ class ContainerManager(QObject):
 
             serialize_type = ""
             try:
-                plugin_metadata = plugin_registry.getMetaData(plugin_id)
-                if plugin_metadata:
+                if plugin_metadata := plugin_registry.getMetaData(plugin_id):
                     serialize_type = plugin_metadata["settings_container"]["type"]
                 else:
                     continue
@@ -437,7 +441,7 @@ class ContainerManager(QObject):
                 # OSX's File dialog is stupid and does not allow selecting files with a . in its name
                 suffix = suffix[suffix.index(".") + 1:]
 
-            suffix_list = "*." + suffix
+            suffix_list = f"*.{suffix}"
             for suffix in mime_type.suffixes:
                 if suffix == mime_type.preferredSuffix:
                     continue
@@ -446,7 +450,7 @@ class ContainerManager(QObject):
                     # OSX's File dialog is stupid and does not allow selecting files with a . in its name
                     suffix = suffix[suffix.index("."):]
 
-                suffix_list += ", *." + suffix
+                suffix_list += f", *.{suffix}"
 
             name_filter = "{0} ({1})".format(mime_type.comment, suffix_list)
             self._container_name_filters[name_filter] = entry
@@ -458,9 +462,18 @@ class ContainerManager(QObject):
         if not file_url.isValid():
             return {"status": "error", "message": catalog.i18nc("@info:status", "Invalid file URL:") + " " + str(file_url)}
         path = file_url.toLocalFile()
-        if not path:
-            return {"status": "error", "message": catalog.i18nc("@info:status", "Invalid file URL:") + " " + str(file_url)}
-        return cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry().importProfile(path)
+        return (
+            cura.CuraApplication.CuraApplication.getInstance()
+            .getContainerRegistry()
+            .importProfile(path)
+            if path
+            else {
+                "status": "error",
+                "message": catalog.i18nc("@info:status", "Invalid file URL:")
+                + " "
+                + str(file_url),
+            }
+        )
 
     @pyqtSlot(QObject, QUrl, str)
     def exportQualityChangesGroup(self, quality_changes_group: "QualityChangesGroup", file_url: QUrl, file_type: str) -> None:
@@ -472,8 +485,13 @@ class ContainerManager(QObject):
 
         container_registry = cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry()
         container_list = [cast(InstanceContainer, container_registry.findContainers(id = quality_changes_group.metadata_for_global["id"])[0])]  # type: List[InstanceContainer]
-        for metadata in quality_changes_group.metadata_per_extruder.values():
-            container_list.append(cast(InstanceContainer, container_registry.findContainers(id = metadata["id"])[0]))
+        container_list.extend(
+            cast(
+                InstanceContainer,
+                container_registry.findContainers(id=metadata["id"])[0],
+            )
+            for metadata in quality_changes_group.metadata_per_extruder.values()
+        )
         cura.CuraApplication.CuraApplication.getInstance().getContainerRegistry().exportQualityProfile(container_list, path, file_type)
 
     __instance = None   # type: ContainerManager

@@ -42,7 +42,7 @@ class AuthorizationService:
     def __init__(self, settings: "OAuth2Settings", preferences: Optional["Preferences"] = None) -> None:
         self._settings = settings
         self._auth_helpers = AuthorizationHelpers(settings)
-        self._auth_url = "{}/authorize".format(self._settings.OAUTH_SERVER_URL)
+        self._auth_url = f"{self._settings.OAUTH_SERVER_URL}/authorize"
         self._auth_data: Optional[AuthenticationResponse] = None
         self._user_profile: Optional["UserProfile"] = None
         self._preferences = preferences

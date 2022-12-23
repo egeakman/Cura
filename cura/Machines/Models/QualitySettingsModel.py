@@ -91,12 +91,11 @@ class QualitySettingsModel(ListModel):
             if catalog.hasTranslationLoaded():
                 self._i18n_catalog = catalog
 
-        quality_group = self._selected_quality_item["quality_group"]
         quality_changes_group = self._selected_quality_item["quality_changes_group"]
 
         quality_node = None
         settings_keys = set()  # type: Set[str]
-        if quality_group:
+        if quality_group := self._selected_quality_item["quality_group"]:
             if self._selected_position == self.GLOBAL_STACK_POSITION:
                 quality_node = quality_group.node_for_global
             else:
@@ -114,17 +113,19 @@ class QualitySettingsModel(ListModel):
             global_containers = container_registry.findContainers(id = metadata_for_global["id"])
             global_container = None if len(global_containers) == 0 else global_containers[0]
             extruders_containers = {pos: container_registry.findContainers(id = quality_changes_group.metadata_per_extruder[pos]["id"]) for pos in quality_changes_group.metadata_per_extruder}
-            extruders_container = {pos: None if not containers else containers[0] for pos, containers in extruders_containers.items()}
+            extruders_container = {
+                pos: containers[0] if containers else None
+                for pos, containers in extruders_containers.items()
+            }
             quality_changes_metadata = None
             if self._selected_position == self.GLOBAL_STACK_POSITION and global_container:
                 quality_changes_metadata = global_container.getMetaData()
-            else:
-                extruder = extruders_container.get(self._selected_position)
-                if extruder:
-                    quality_changes_metadata = extruder.getMetaData()
+            elif extruder := extruders_container.get(self._selected_position):
+                quality_changes_metadata = extruder.getMetaData()
             if quality_changes_metadata is not None:  # It can be None if number of extruders are changed during runtime.
-                container = container_registry.findContainers(id = quality_changes_metadata["id"])
-                if container:
+                if container := container_registry.findContainers(
+                    id=quality_changes_metadata["id"]
+                ):
                     quality_containers.insert(0, container[0])
 
             if global_container:
@@ -141,7 +142,9 @@ class QualitySettingsModel(ListModel):
             if definition.type == "category":
                 current_category = definition.label
                 if self._i18n_catalog:
-                    current_category = self._i18n_catalog.i18nc(definition.key + " label", definition.label)
+                    current_category = self._i18n_catalog.i18nc(
+                        f"{definition.key} label", definition.label
+                    )
                 continue
 
             profile_value = None
@@ -173,7 +176,7 @@ class QualitySettingsModel(ListModel):
 
             label = definition.label
             if self._i18n_catalog:
-                label = self._i18n_catalog.i18nc(definition.key + " label", label)
+                label = self._i18n_catalog.i18nc(f"{definition.key} label", label)
             if profile_value_source == "quality_changes":
                 label = f"<i>{label}</i>"  # Make setting name italic if it's derived from the quality-changes profile.
 

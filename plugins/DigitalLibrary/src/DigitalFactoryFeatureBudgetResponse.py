@@ -32,10 +32,7 @@ class DigitalFactoryFeatureBudgetResponse(BaseModel):
         super().__init__(**kwargs)
 
     def __repr__(self) -> str:
-        return "max private: {}, max org: {}, max team: {}".format(
-            self.library_max_private_projects,
-            self.library_max_organization_shared_projects,
-            self.library_max_team_shared_projects)
+        return f"max private: {self.library_max_private_projects}, max org: {self.library_max_organization_shared_projects}, max team: {self.library_max_team_shared_projects}"
 
     # Validates the model, raising an exception if the model is invalid.
     def validate(self) -> None:
