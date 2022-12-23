@@ -31,7 +31,7 @@ class ArrangeObjectsJob(Job):
 
         try:
             found_solution_for_all = arrange(self._nodes, Application.getInstance().getBuildVolume(), self._fixed_nodes)
-        except:  # If the thread crashes, the message should still close
+        except Exception:  # If the thread crashes, the message should still close
             Logger.logException("e", "Unable to arrange the objects on the buildplate. The arrange algorithm has crashed.")
 
         status_message.hide()
