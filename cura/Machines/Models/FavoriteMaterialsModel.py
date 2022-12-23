@@ -35,8 +35,7 @@ class FavoriteMaterialsModel(BaseMaterialsModel):
             if root_material_id not in self._favorite_ids:
                 continue
 
-            item = self._createMaterialItem(root_material_id, container_node)
-            if item:
+            if item := self._createMaterialItem(root_material_id, container_node):
                 item_list.append(item)
 
         # Sort the item list alphabetically by name

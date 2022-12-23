@@ -144,9 +144,8 @@ class MaterialManagementModel(QObject):
             new_id = new_base_id
             definition = container_to_copy.getMetaDataEntry("definition")
             if definition != "fdmprinter":
-                new_id += "_" + definition
-                variant_name = container_to_copy.getMetaDataEntry("variant_name")
-                if variant_name:
+                new_id += f"_{definition}"
+                if variant_name := container_to_copy.getMetaDataEntry("variant_name"):
                     new_id += "_" + variant_name.replace(" ", "_")
 
             new_container = copy.deepcopy(container_to_copy)

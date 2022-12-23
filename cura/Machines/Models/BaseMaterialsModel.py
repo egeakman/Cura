@@ -178,10 +178,7 @@ class BaseMaterialsModel(ListModel):
         if global_stack is None or not self._enabled:
             return False
 
-        if self._extruder_position >= len(global_stack.extruderList):
-            return False
-
-        return True
+        return self._extruder_position < len(global_stack.extruderList)
 
     def _createMaterialItem(self, root_material_id, container_node):
         """This is another convenience function which is shared by all material models so it's put here to avoid having

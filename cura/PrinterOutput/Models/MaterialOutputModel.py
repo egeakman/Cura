@@ -17,7 +17,7 @@ class MaterialOutputModel(QObject):
 
     @pyqtProperty(str, constant = True)
     def guid(self) -> str:
-        return self._guid if self._guid else ""
+        return self._guid or ""
 
     @pyqtProperty(str, constant = True)
     def type(self) -> str:

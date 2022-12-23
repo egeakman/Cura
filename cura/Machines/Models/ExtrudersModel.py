@@ -168,9 +168,7 @@ class ExtrudersModel(ListModel):
 
         items = []
 
-        global_container_stack = Application.getInstance().getGlobalContainerStack()
-        if global_container_stack:
-
+        if (global_container_stack := Application.getInstance().getGlobalContainerStack()):
             # get machine extruder count for verification
             machine_extruder_count = global_container_stack.getProperty("machine_extruder_count", "value")
 

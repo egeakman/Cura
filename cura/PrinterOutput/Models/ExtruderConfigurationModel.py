@@ -57,13 +57,16 @@ class ExtruderConfigurationModel(QObject):
         return True
 
     def __str__(self) -> str:
-        message_chunks = []
-        message_chunks.append("Position: " + str(self._position))
-        message_chunks.append("-")
-        message_chunks.append("Material: " + self.activeMaterial.type if self.activeMaterial else "empty")
-        message_chunks.append("-")
-        message_chunks.append("HotendID: " + self.hotendID if self.hotendID else "empty")
-        return " ".join(message_chunks)
+        message = [
+            f"Position: {str(self._position)}",
+            "-",
+            f"Material: {self.activeMaterial.type}"
+            if self.activeMaterial
+            else "empty",
+            "-",
+            f"HotendID: {self.hotendID}" if self.hotendID else "empty",
+        ]
+        return " ".join(message)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, ExtruderConfigurationModel):
@@ -72,18 +75,13 @@ class ExtruderConfigurationModel(QObject):
         if self._position != other.position:
             return False
         # Empty materials should be ignored for comparison
-        if self.activeMaterial is not None and other.activeMaterial is not None:
-            if self.activeMaterial.guid != other.activeMaterial.guid:
-                if self.activeMaterial.guid == "" and other.activeMaterial.guid == "":
-                    # At this point there is no material, so it doesn't matter what the hotend is.
-                    return True
-                else:
-                    return False
-
-        if self.hotendID != other.hotendID:
-            return False
-
-        return True
+        if (
+            self.activeMaterial is not None
+            and other.activeMaterial is not None
+            and self.activeMaterial.guid != other.activeMaterial.guid
+        ): # At this point there is no material, so it doesn't matter what the hotend is.
+            return self.activeMaterial.guid == "" and other.activeMaterial.guid == ""
+        return self.hotendID == other.hotendID
 
     #   Calculating a hash function using the position of the extruder, the material GUID and the hotend id to check if is
     #   unique within a set

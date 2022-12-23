@@ -57,7 +57,7 @@ class UserChangesModel(ListModel):
         definition = global_stack.getBottom()
 
         definition_suffix = ContainerRegistry.getMimeTypeForContainer(type(definition)).preferredSuffix
-        catalog = i18nCatalog(os.path.basename(definition.getId() + "." + definition_suffix))
+        catalog = i18nCatalog(os.path.basename(f"{definition.getId()}.{definition_suffix}"))
 
         if catalog.hasTranslationLoaded():
             self._i18n_catalog = catalog
@@ -88,17 +88,21 @@ class UserChangesModel(ListModel):
                     category = category.parent
 
                 # Handle translation (and fallback if we weren't able to find any translation files.
-                if category is not None:
-                    if self._i18n_catalog:
-                        category_label = self._i18n_catalog.i18nc(category.key + " label", category.label)
-                    else:
-                        category_label = category.label
-                else:  # Setting is not in any category. Shouldn't happen, but it do. See https://sentry.io/share/issue/d735884370154166bc846904d9b812ff/
+                if category is None:  # Setting is not in any category. Shouldn't happen, but it do. See https://sentry.io/share/issue/d735884370154166bc846904d9b812ff/
                     Logger.error("Setting {key} is not in any setting category.".format(key = setting_key))
                     category_label = ""
 
+                elif self._i18n_catalog:
+                    category_label = self._i18n_catalog.i18nc(
+                        f"{category.key} label", category.label
+                    )
+                else:
+                    category_label = category.label
                 if self._i18n_catalog:
-                    label = self._i18n_catalog.i18nc(setting_key + " label", stack.getProperty(setting_key, "label"))
+                    label = self._i18n_catalog.i18nc(
+                        f"{setting_key} label",
+                        stack.getProperty(setting_key, "label"),
+                    )
                 else:
                     label = stack.getProperty(setting_key, "label")
 

@@ -91,12 +91,11 @@ class QualitySettingsModel(ListModel):
             if catalog.hasTranslationLoaded():
                 self._i18n_catalog = catalog
 
-        quality_group = self._selected_quality_item["quality_group"]
         quality_changes_group = self._selected_quality_item["quality_changes_group"]
 
         quality_node = None
         settings_keys = set()  # type: Set[str]
-        if quality_group:
+        if quality_group := self._selected_quality_item["quality_group"]:
             if self._selected_position == self.GLOBAL_STACK_POSITION:
                 quality_node = quality_group.node_for_global
             else:
@@ -141,7 +140,9 @@ class QualitySettingsModel(ListModel):
             if definition.type == "category":
                 current_category = definition.label
                 if self._i18n_catalog:
-                    current_category = self._i18n_catalog.i18nc(definition.key + " label", definition.label)
+                    current_category = self._i18n_catalog.i18nc(
+                        f"{definition.key} label", definition.label
+                    )
                 continue
 
             profile_value = None
@@ -173,7 +174,7 @@ class QualitySettingsModel(ListModel):
 
             label = definition.label
             if self._i18n_catalog:
-                label = self._i18n_catalog.i18nc(definition.key + " label", label)
+                label = self._i18n_catalog.i18nc(f"{definition.key} label", label)
             if profile_value_source == "quality_changes":
                 label = f"<i>{label}</i>"  # Make setting name italic if it's derived from the quality-changes profile.
 

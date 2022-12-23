@@ -125,7 +125,7 @@ class DiscoveredPrintersModel(QObject):
         super().__init__(parent)
 
         self._application = application
-        self._discovered_printer_by_ip_dict = dict()  # type: Dict[str, DiscoveredPrinter]
+        self._discovered_printer_by_ip_dict = {}  # type: Dict[str, DiscoveredPrinter]
 
         self._plugin_for_manual_device = None  # type: Optional[OutputDevicePlugin]
         self._network_plugin_queue = []  # type: List[OutputDevicePlugin]
@@ -153,9 +153,13 @@ class DiscoveredPrintersModel(QObject):
 
         all_plugins_dict = self._application.getOutputDeviceManager().getAllOutputDevicePlugins()
 
-        self._network_plugin_queue = [item for item in filter(
-            lambda plugin_item: plugin_item.canAddManualDevice(address) in priority_order,
-            all_plugins_dict.values())]
+        self._network_plugin_queue = list(
+            filter(
+                lambda plugin_item: plugin_item.canAddManualDevice(address)
+                in priority_order,
+                all_plugins_dict.values(),
+            )
+        )
 
         if not self._network_plugin_queue:
             Logger.log("d", "Could not find a plugin to accept adding %s manually via address.", address)
@@ -215,8 +219,11 @@ class DiscoveredPrintersModel(QObject):
 
     @pyqtProperty("QVariantList", notify = discoveredPrintersChanged)
     def discoveredPrinters(self) -> List["DiscoveredPrinter"]:
-        item_list = list(
-            x for x in self._discovered_printer_by_ip_dict.values() if not parseBool(x.device.getProperty("temporary")))
+        item_list = [
+            x
+            for x in self._discovered_printer_by_ip_dict.values()
+            if not parseBool(x.device.getProperty("temporary"))
+        ]
 
         # Split the printers into 2 lists and sort them ascending based on names.
         available_list = []

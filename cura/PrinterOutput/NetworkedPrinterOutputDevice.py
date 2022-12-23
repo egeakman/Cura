@@ -43,8 +43,7 @@ class NetworkedPrinterOutputDevice(PrinterOutputDevice):
         self._api_prefix = ""
         self._address = address
         self._properties = properties
-        self._user_agent = "%s/%s " % (CuraApplication.getInstance().getApplicationName(),
-                                       CuraApplication.getInstance().getVersion())
+        self._user_agent = f"{CuraApplication.getInstance().getApplicationName()}/{CuraApplication.getInstance().getVersion()} "
 
         self._onFinishedCallbacks = {}      # type: Dict[str, Callable[[QNetworkReply], None]]
         self._authentication_state = AuthState.NotAuthenticated
@@ -143,7 +142,7 @@ class NetworkedPrinterOutputDevice(PrinterOutputDevice):
                 self._connection_state_before_timeout = None
 
     def _createEmptyRequest(self, target: str, content_type: Optional[str] = "application/json") -> QNetworkRequest:
-        url = QUrl("http://" + self._address + self._api_prefix + target)
+        url = QUrl(f"http://{self._address}{self._api_prefix}{target}")
         request = QNetworkRequest(url)
         if content_type is not None:
             request.setHeader(QNetworkRequest.KnownHeaders.ContentTypeHeader, content_type)
@@ -161,7 +160,7 @@ class NetworkedPrinterOutputDevice(PrinterOutputDevice):
         part = QHttpPart()
 
         if not content_header.startswith("form-data;"):
-            content_header = "form-data; " + content_header
+            content_header = f"form-data; {content_header}"
         part.setHeader(QNetworkRequest.KnownHeaders.ContentDispositionHeader, content_header)
 
         if content_type is not None:
@@ -181,8 +180,7 @@ class NetworkedPrinterOutputDevice(PrinterOutputDevice):
         # Otherwise get the username from the US
         # The code below was copied from the getpass module, as we try to use as little dependencies as possible.
         for name in ("LOGNAME", "USER", "LNAME", "USERNAME"):
-            user = os.environ.get(name)
-            if user:
+            if user := os.environ.get(name):
                 return user
         return "Unknown User"  # Couldn't find out username.
 

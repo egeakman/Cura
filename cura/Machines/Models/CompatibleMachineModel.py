@@ -50,7 +50,7 @@ class CompatibleMachineModel(ListModel):
         # Loop over the output-devices, not the stacks; need all applicable configurations, not just the current loaded one.
         for output_device in machine_manager.printerOutputDevices:
             for printer in output_device.printers:
-                extruder_configs = dict()
+                extruder_configs = {}
 
                 # initialize & add current active material:
                 for extruder in printer.extruders:
@@ -65,7 +65,7 @@ class CompatibleMachineModel(ListModel):
                 # add currently inactive, but possible materials:
                 for configuration in printer.availableConfigurations:
                     for extruder in configuration.extruderConfigurations:
-                        if not extruder.position in extruder_configs:
+                        if extruder.position not in extruder_configs:
                             Logger.log("w", f"No active extruder for position {extruder.position}.")
                             continue
 
@@ -73,7 +73,10 @@ class CompatibleMachineModel(ListModel):
                         if entry not in extruder_configs[extruder.position]["materials"]:
                             extruder_configs[extruder.position]["materials"].append(entry)
 
-                if any([len(extruder["materials"]) > 0 for extruder in extruder_configs.values()]):
+                if any(
+                    len(extruder["materials"]) > 0
+                    for extruder in extruder_configs.values()
+                ):
                     self.appendItem({
                         "name": printer.name,
                         "unique_id": printer.name,  # <- Can assume the cloud doesn't have duplicate names?

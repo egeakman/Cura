@@ -59,7 +59,7 @@ class PrintJobOutputModel(QObject):
         # There is an image provider that is called "print_job_preview". In order to ensure that the image qml object, that
         # requires a QUrl to function, updates correctly we add an increasing number. This causes to see the QUrl
         # as new (instead of relying on cached version and thus forces an update.
-        temp = "image://print_job_preview/" + str(self._preview_image_id) + "/" + self._key
+        temp = f"image://print_job_preview/{self._preview_image_id}/{self._key}"
         return QUrl(temp, QUrl.ParsingMode.TolerantMode)
 
     def getPreviewImage(self) -> Optional[QImage]:
@@ -161,9 +161,7 @@ class PrintJobOutputModel(QObject):
             "resuming",
             "wait_cleanup"
         ]
-        if self.state in inactive_states and self.timeRemaining > 0:
-            return False
-        return True
+        return self.state not in inactive_states or self.timeRemaining <= 0
 
     def updateTimeTotal(self, new_time_total: int) -> None:
         if self._time_total != new_time_total:

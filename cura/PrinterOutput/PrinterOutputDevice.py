@@ -125,7 +125,10 @@ class PrinterOutputDevice(QObject, OutputDevice):
         Returns whether we could theoretically send commands to this printer.
         :return: `True` if we are connected, or `False` if not.
         """
-        return self.connectionState != ConnectionState.Closed and self.connectionState != ConnectionState.Error
+        return self.connectionState not in [
+            ConnectionState.Closed,
+            ConnectionState.Error,
+        ]
 
     def setConnectionState(self, connection_state: "ConnectionState") -> None:
         """
@@ -159,11 +162,9 @@ class PrinterOutputDevice(QObject, OutputDevice):
         pass
 
     def _getPrinterByKey(self, key: str) -> Optional["PrinterOutputModel"]:
-        for printer in self._printers:
-            if printer.key == key:
-                return printer
-
-        return None
+        return next(
+            (printer for printer in self._printers if printer.key == key), None
+        )
 
     def requestWrite(self, nodes: List["SceneNode"], file_name: Optional[str] = None, limit_mimetypes: bool = False,
                      file_handler: Optional["FileHandler"] = None, filter_by_machine: bool = False, **kwargs) -> None:
@@ -171,9 +172,7 @@ class PrinterOutputDevice(QObject, OutputDevice):
 
     @pyqtProperty(QObject, notify = printersChanged)
     def activePrinter(self) -> Optional["PrinterOutputModel"]:
-        if self._printers:
-            return self._printers[0]
-        return None
+        return self._printers[0] if self._printers else None
 
     @pyqtProperty("QVariantList", notify = printersChanged)
     def printers(self) -> List["PrinterOutputModel"]:
@@ -260,7 +259,14 @@ class PrinterOutputDevice(QObject, OutputDevice):
     @pyqtProperty("QStringList", notify = uniqueConfigurationsChanged)
     def uniquePrinterTypes(self) -> List[str]:
         """ Returns the unique configurations of the printers within this output device """
-        return list(sorted(set([configuration.printerType or "" for configuration in self._unique_configurations])))
+        return list(
+            sorted(
+                {
+                    configuration.printerType or ""
+                    for configuration in self._unique_configurations
+                }
+            )
+        )
 
     def _onPrintersChanged(self) -> None:
         for printer in self._printers:

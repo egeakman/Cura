@@ -54,9 +54,17 @@ class VariantNode(ContainerNode):
             base_materials = container_registry.findInstanceContainersMetadata(type = "material", definition = "fdmprinter")
             printer_specific_materials = container_registry.findInstanceContainersMetadata(type = "material", definition = self.machine.container_id)
             variant_specific_materials = container_registry.findInstanceContainersMetadata(type = "material", definition = self.machine.container_id, variant_name = self.variant_name)  # If empty_variant, this won't return anything.
-            materials_per_base_file = {material["base_file"]: material for material in base_materials}
-            materials_per_base_file.update({material["base_file"]: material for material in printer_specific_materials})  # Printer-specific profiles override global ones.
-            materials_per_base_file.update({material["base_file"]: material for material in variant_specific_materials})  # Variant-specific profiles override all of those.
+            materials_per_base_file = (
+                {material["base_file"]: material for material in base_materials}
+                | {
+                    material["base_file"]: material
+                    for material in printer_specific_materials # Printer-specific profiles override global ones.
+                }
+                | {
+                    material["base_file"]: material
+                    for material in variant_specific_materials # Variant-specific profiles override all of those.
+                }
+            )
             materials = list(materials_per_base_file.values())
 
         # Filter materials based on the exclude_materials property.
@@ -88,7 +96,7 @@ class VariantNode(ContainerNode):
 
         # First fallback: Check if we should be checking for the 175 variant.
         if approximate_diameter == 2:
-            preferred_material = self.machine.preferred_material + "_175"
+            preferred_material = f"{self.machine.preferred_material}_175"
             for base_material, material_node in self.materials.items():
                 if preferred_material == base_material and approximate_diameter == int(material_node.getMetaDataEntry("approximate_diameter")):
                     return material_node
@@ -130,7 +138,10 @@ class VariantNode(ContainerNode):
         if base_file in self.machine.exclude_materials:
             return  # Material is forbidden for this printer.
         if base_file not in self.materials:  # Completely new base file. Always better than not having a file as long as it matches our set-up.
-            if material_definition != "fdmprinter" and material_definition != self.machine.container_id:
+            if material_definition not in [
+                "fdmprinter",
+                self.machine.container_id,
+            ]:
                 return
             material_variant = container.getMetaDataEntry("variant_name")
             if material_variant is not None and material_variant != self.variant_name:
@@ -166,8 +177,9 @@ class VariantNode(ContainerNode):
 
         # Now a different material from the same base file may have been hidden because it was not as specific as the one we deleted.
         # Search for any submaterials from that base file that are still left.
-        materials_same_base_file = ContainerRegistry.getInstance().findContainersMetadata(base_file = base_file)
-        if materials_same_base_file:
+        if materials_same_base_file := ContainerRegistry.getInstance().findContainersMetadata(
+            base_file=base_file
+        ):
             most_specific_submaterial = None
             for submaterial in materials_same_base_file:
                 if submaterial["definition"] == self.machine.container_id:

@@ -52,8 +52,7 @@ class QualityGroup:
         for node in [self.node_for_global] + list(self.nodes_for_extruders.values()):
             if node is None:
                 continue
-            container = node.container
-            if container:
+            if container := node.container:
                 result.update(container.getAllKeys())
         return result
 
@@ -61,8 +60,7 @@ class QualityGroup:
         result = []
         if self.node_for_global is not None:
             result.append(self.node_for_global)
-        for extruder_node in self.nodes_for_extruders.values():
-            result.append(extruder_node)
+        result.extend(iter(self.nodes_for_extruders.values()))
         return result
 
     def setGlobalNode(self, node: "ContainerNode") -> None:

@@ -59,9 +59,10 @@ class MultiBuildPlateModel(ListModel):
             self._update_timer.start()
 
     def _updateSelectedObjectBuildPlateNumbers(self, *args):
-        result = set()
-        for node in Selection.getAllSelectedObjects():
-            result.add(node.callDecoration("getBuildPlateNumber"))
+        result = {
+            node.callDecoration("getBuildPlateNumber")
+            for node in Selection.getAllSelectedObjects()
+        }
         self._selection_build_plates = list(result)
         self.selectionChanged.emit()
 

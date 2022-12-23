@@ -52,9 +52,7 @@ class BackupsManager:
         self._disableAutoSave()
 
         backup = Backup(self._application, zip_file = zip_file, meta_data = meta_data)
-        restored = backup.restore()
-
-        if restored:
+        if restored := backup.restore():
             # At this point, Cura will need to restart for the changes to take effect.
             # We don't want to store the data at this point as that would override the just-restored backup.
             self._application.windowClosed(save_data = False)
@@ -63,9 +61,7 @@ class BackupsManager:
         """Here we (try to) disable the saving as it might interfere with restoring a back-up."""
 
         self._application.enableSave(False)
-        auto_save = self._application.getAutoSave()
-        # The auto save is only not created if the application has not yet started.
-        if auto_save:
+        if auto_save := self._application.getAutoSave(): # The auto save is only not created if the application has not yet started.
             auto_save.setEnabled(False)
         else:
             Logger.log("e", "Unable to disable the autosave as application init has not been completed")
@@ -74,9 +70,7 @@ class BackupsManager:
         """Re-enable auto-save and other saving after we're done."""
 
         self._application.enableSave(True)
-        auto_save = self._application.getAutoSave()
-        # The auto save is only not created if the application has not yet started.
-        if auto_save:
+        if auto_save := self._application.getAutoSave(): # The auto save is only not created if the application has not yet started.
             auto_save.setEnabled(True)
         else:
             Logger.log("e", "Unable to enable the autosave as application init has not been completed")

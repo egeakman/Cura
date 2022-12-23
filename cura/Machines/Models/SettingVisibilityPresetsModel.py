@@ -48,28 +48,20 @@ class SettingVisibilityPresetsModel(QObject):
         self._active_preset_item = self.getVisibilityPresetById(self._preferences.getValue("cura/active_setting_visibility_preset"))
 
         # Initialize visible settings if it is not done yet
-        visible_settings = self._preferences.getValue("general/visible_settings")
-
-        if not visible_settings:
-            new_visible_settings = self._active_preset_item.settings if self._active_preset_item is not None else []
-            self._preferences.setValue("general/visible_settings", ";".join(new_visible_settings))
-        else:
+        if visible_settings := self._preferences.getValue("general/visible_settings"):
             self._onPreferencesChanged("general/visible_settings")
 
+        else:
+            new_visible_settings = self._active_preset_item.settings if self._active_preset_item is not None else []
+            self._preferences.setValue("general/visible_settings", ";".join(new_visible_settings))
         self.activePresetChanged.emit()
 
     def getVisibilityPresetById(self, item_id: str) -> Optional[SettingVisibilityPreset]:
-        result = None
-        for item in self._items:
-            if item.presetId == item_id:
-                result = item
-                break
-        return result
+        return next((item for item in self._items if item.presetId == item_id), None)
 
     def _populate(self) -> None:
         from cura.CuraApplication import CuraApplication
-        items = []  # type: List[SettingVisibilityPreset]
-        items.append(self._custom_preset)
+        items = [self._custom_preset] # type: List[SettingVisibilityPreset]
         for file_path in Resources.getAllResourcesOfType(CuraApplication.ResourceTypes.SettingVisibilityPreset):
             setting_visibility_preset = SettingVisibilityPreset()
             try:
@@ -111,8 +103,7 @@ class SettingVisibilityPresetsModel(QObject):
         need_to_save_to_custom = self._active_preset_item is None or (self._active_preset_item.presetId == "custom" and preset_id != "custom")
         if need_to_save_to_custom:
             # Save the current visibility settings to custom
-            current_visibility_string = self._preferences.getValue("general/visible_settings")
-            if current_visibility_string:
+            if current_visibility_string := self._preferences.getValue("general/visible_settings"):
                 self._preferences.setValue("cura/custom_visible_settings", current_visibility_string)
 
         new_visibility_string = ";".join(preset_item.settings)

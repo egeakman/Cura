@@ -49,34 +49,43 @@ class PrinterConfigurationModel(QObject):
         return self._buildplate_configuration
 
     def isValid(self) -> bool:
-        """This method is intended to indicate whether the configuration is valid or not.
-
+        """
+        This method is intended to indicate whether the configuration is valid or not
         The method checks if the mandatory fields are or not set
         """
-        if not self._extruder_configurations:
-            return False
-        for configuration in self._extruder_configurations:
-            if configuration is None:
-                return False
-        return self._printer_type != ""
+        return (
+            next(
+                (
+                    False
+                    for configuration in self._extruder_configurations
+                    if configuration is None
+                ),
+                self._printer_type != "",
+            )
+            if self._extruder_configurations
+            else False
+        )
 
     def hasAnyMaterialLoaded(self) -> bool:
-        if not self.isValid():
-            return False
-        for configuration in self._extruder_configurations:
-            if configuration.activeMaterial and configuration.activeMaterial.type != "empty":
-                return True
-        return False
+        return (
+            any(
+                configuration.activeMaterial
+                and configuration.activeMaterial.type != "empty"
+                for configuration in self._extruder_configurations
+            )
+            if self.isValid()
+            else False
+        )
 
     def __str__(self):
-        message_chunks = []
-        message_chunks.append("Printer type: " + self._printer_type)
-        message_chunks.append("Extruders: [")
-        for configuration in self._extruder_configurations:
-            message_chunks.append("   " + str(configuration))
+        message_chunks = [f"Printer type: {self._printer_type}", "Extruders: ["]
+        message_chunks.extend(
+            "   " + str(configuration)
+            for configuration in self._extruder_configurations
+        )
         message_chunks.append("]")
         if self._buildplate_configuration is not None:
-            message_chunks.append("Buildplate: " + self._buildplate_configuration)
+            message_chunks.append(f"Buildplate: {self._buildplate_configuration}")
 
         return "\n".join(message_chunks)
 

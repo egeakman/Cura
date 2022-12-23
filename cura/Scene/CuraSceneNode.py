@@ -40,9 +40,11 @@ class CuraSceneNode(SceneNode):
 
     def isSupportMesh(self) -> bool:
         per_mesh_stack = self.callDecoration("getStack")
-        if not per_mesh_stack:
-            return False
-        return per_mesh_stack.getProperty("support_mesh", "value")
+        return (
+            per_mesh_stack.getProperty("support_mesh", "value")
+            if per_mesh_stack
+            else False
+        )
 
     def getPrintingExtruder(self) -> Optional[ExtruderStack]:
         """Get the extruder used to print this node. If there is no active node, then the extruder in position zero is returned
@@ -57,25 +59,24 @@ class CuraSceneNode(SceneNode):
         extruders = global_container_stack.extruderList
 
         # Use the support extruder instead of the active extruder if this is a support_mesh
-        if per_mesh_stack:
-            if per_mesh_stack.getProperty("support_mesh", "value"):
-                return extruders[int(global_container_stack.getExtruderPositionValueWithDefault("support_extruder_nr"))]
+        if per_mesh_stack and per_mesh_stack.getProperty("support_mesh", "value"):
+            return extruders[int(global_container_stack.getExtruderPositionValueWithDefault("support_extruder_nr"))]
 
         # It's only set if you explicitly choose an extruder
         extruder_id = self.callDecoration("getActiveExtruder")
 
         for extruder in extruders:
             # Find out the extruder if we know the id.
-            if extruder_id is not None:
-                if extruder_id == extruder.getId():
-                    return extruder
-            else:  # If the id is unknown, then return the extruder in the position 0
+            if extruder_id is None:  # If the id is unknown, then return the extruder in the position 0
                 try:
                     if extruder.getMetaDataEntry("position", default = "0") == "0":  # Check if the position is zero
                         return extruder
                 except ValueError:
                     continue
 
+            elif extruder_id == extruder.getId():
+                return extruder
+            
         # This point should never be reached
         return None
 
@@ -100,8 +101,7 @@ class CuraSceneNode(SceneNode):
     def collidesWithAreas(self, areas: List[Polygon]) -> bool:
         """Return if any area collides with the convex hull of this scene node"""
 
-        convex_hull = self.callDecoration("getPrintingArea")
-        if convex_hull:
+        if convex_hull := self.callDecoration("getPrintingArea"):
             if not convex_hull.isValid():
                 return False
 
@@ -128,11 +128,8 @@ class CuraSceneNode(SceneNode):
             if child_bb is None or child_bb.minimum == child_bb.maximum:
                 # Child had a degenerate bounding box, such as an empty group. Don't count it along.
                 continue
-            if self._aabb is None:
-                self._aabb = child_bb
-            else:
-                self._aabb = self._aabb + child_bb
-
+            self._aabb = child_bb if self._aabb is None else self._aabb + child_bb
+            
         if self._aabb is None:  # No children that should be included? Just use your own position then, but it's an invalid AABB.
             position = self.getWorldPosition()
             self._aabb = AxisAlignedBox(minimum = position, maximum = position)

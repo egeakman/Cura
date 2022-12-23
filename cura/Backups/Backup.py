@@ -60,8 +60,12 @@ class Backup:
         # When restoring a backup on Linux, we move it back.
         if Platform.isLinux(): #TODO: This should check for the config directory not being the same as the data directory, rather than hard-coding that to Linux systems.
             preferences_file_name = self._application.getApplicationName()
-            preferences_file = Resources.getPath(Resources.Preferences, "{}.cfg".format(preferences_file_name))
-            backup_preferences_file = os.path.join(version_data_dir, "{}.cfg".format(preferences_file_name))
+            preferences_file = Resources.getPath(
+                Resources.Preferences, f"{preferences_file_name}.cfg"
+            )
+            backup_preferences_file = os.path.join(
+                version_data_dir, f"{preferences_file_name}.cfg"
+            )
             if os.path.exists(preferences_file) and (not os.path.exists(backup_preferences_file) or not os.path.samefile(preferences_file, backup_preferences_file)):
                 Logger.log("d", "Copying preferences file from %s to %s", preferences_file, backup_preferences_file)
                 shutil.copyfile(preferences_file, backup_preferences_file)
@@ -111,9 +115,13 @@ class Backup:
             return archive
         except (IOError, OSError, BadZipfile) as error:
             Logger.log("e", "Could not create archive from user data directory: %s", error)
-            self._showMessage(self.catalog.i18nc("@info:backup_failed",
-                                                 "Could not create archive from user data directory: {}".format(error)),
-                              message_type = Message.MessageType.ERROR)
+            self._showMessage(
+                self.catalog.i18nc(
+                    "@info:backup_failed",
+                    f"Could not create archive from user data directory: {error}",
+                ),
+                message_type=Message.MessageType.ERROR,
+            )
             return None
 
     def _showMessage(self, message: str, message_type: Message.MessageType = Message.MessageType.NEUTRAL) -> None:
@@ -165,8 +173,12 @@ class Backup:
         # Under Linux, preferences are stored elsewhere, so we copy the file to there.
         if Platform.isLinux():
             preferences_file_name = self._application.getApplicationName()
-            preferences_file = Resources.getPath(Resources.Preferences, "{}.cfg".format(preferences_file_name))
-            backup_preferences_file = os.path.join(version_data_dir, "{}.cfg".format(preferences_file_name))
+            preferences_file = Resources.getPath(
+                Resources.Preferences, f"{preferences_file_name}.cfg"
+            )
+            backup_preferences_file = os.path.join(
+                version_data_dir, f"{preferences_file_name}.cfg"
+            )
             Logger.log("d", "Moving preferences file from %s to %s", backup_preferences_file, preferences_file)
             try:
                 shutil.move(backup_preferences_file, preferences_file)
