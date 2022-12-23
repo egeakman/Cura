@@ -104,21 +104,17 @@ class ObjectsModel(ListModel):
         all_nodes = []  # type: List[SceneNode]
         for name, node_info in node_info_dict.items():
             # First add the ones that do not need to be renamed.
-            for node in node_info.index_to_node.values():
-                all_nodes.append(node)
-
+            all_nodes.extend(iter(node_info.index_to_node.values()))
             # Generate new names for the nodes that need to be renamed
-            current_index = 0
-            for node in node_info.nodes_to_rename:
-                current_index += 1
+            for current_index, node in enumerate(node_info.nodes_to_rename, start=1):
                 while current_index in node_info.index_to_node:
                     current_index += 1
 
-                if not node_info.is_group:
-                    new_group_name = "{0}({1})".format(name, current_index)
-                else:
-                    new_group_name = "{0}#{1}".format(name, current_index)
-
+                new_group_name = (
+                    "{0}#{1}".format(name, current_index)
+                    if node_info.is_group
+                    else "{0}({1})".format(name, current_index)
+                )
                 node.setName(new_group_name)
                 all_nodes.append(node)
         return all_nodes
@@ -186,8 +182,7 @@ class ObjectsModel(ListModel):
             node_mesh_type = ""
             per_object_settings_count = 0
 
-            per_object_stack = node.callDecoration("getStack")
-            if per_object_stack:
+            if per_object_stack := node.callDecoration("getStack"):
                 per_object_settings_count = per_object_stack.getTop().getNumInstances()
 
                 if node.callDecoration("isAntiOverhangMesh"):
@@ -203,22 +198,19 @@ class ObjectsModel(ListModel):
                     node_mesh_type = "infill_mesh"
                     per_object_settings_count -= 1  # do not count this mesh type setting
 
-                if per_object_settings_count > 0:
-                    if node_mesh_type == "support_mesh":
+                if node_mesh_type == "anti_overhang_mesh":
+                    # anti overhang meshes ignore per model settings
+                    per_object_settings_count = min(per_object_settings_count, 0)
+                elif node_mesh_type == "support_mesh":
+                    if per_object_settings_count > 0:
                         # support meshes only allow support settings
                         per_object_settings_count = 0
                         for key in per_object_stack.getTop().getAllKeys():
                             if per_object_stack.getTop().getInstance(key).definition.isAncestor("support"):
                                 per_object_settings_count += 1
-                    elif node_mesh_type == "anti_overhang_mesh":
-                        # anti overhang meshes ignore per model settings
-                        per_object_settings_count = 0
-
+                                
             extruder_position = node.callDecoration("getActiveExtruderPosition")
-            if extruder_position is None:
-                extruder_number = -1
-            else:
-                extruder_number = int(extruder_position)
+            extruder_number = -1 if extruder_position is None else int(extruder_position)
             if node_mesh_type == "anti_overhang_mesh" or node.callDecoration("isGroup"):
                 # for anti overhang meshes and groups the extruder nr is irrelevant
                 extruder_number = -1

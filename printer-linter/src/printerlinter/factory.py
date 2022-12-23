@@ -18,9 +18,7 @@ def getLinter(file: Path, settings: dict) -> Optional[Linter]:
     if ".def" in file.suffixes and ".json" in file.suffixes:
         if file.stem in ("fdmprinter.def", "fdmextruder.def"):
             return None
-        return Definition(file, settings)
+        else:
+            return Definition(file, settings)
 
-    if file.parent.stem == "meshes":
-        return Meshes(file, settings)
-
-    return None
+    return Meshes(file, settings) if file.parent.stem == "meshes" else None

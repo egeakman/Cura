@@ -17,9 +17,7 @@ class LayerData(MeshData):
         self._element_counts = element_counts
 
     def getLayer(self, layer):
-        if layer in self._layers:
-            return self._layers[layer]
-        return None
+        return self._layers[layer] if layer in self._layers else None
 
     def getLayers(self):
         return self._layers

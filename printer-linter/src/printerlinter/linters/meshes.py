@@ -13,13 +13,11 @@ class Meshes(Linter):
 
     def check(self) -> Iterator[Diagnostic]:
         if self._settings["checks"].get("diagnostic-mesh-file-extension", False):
-            for check in self.checkFileFormat():
-                yield check
+            yield from self.checkFileFormat()
 
         if self._settings["checks"].get("diagnostic-mesh-file-size", False):
-            for check in self.checkFileSize():
-                yield check
-
+            yield from self.checkFileSize()
+            
         yield
 
     def checkFileFormat(self) -> Iterator[Diagnostic]:

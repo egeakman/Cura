@@ -244,11 +244,7 @@ class PrintInformation(QObject):
                     cost = 0
 
             # Material amount is sent as an amount of mm^3, so calculate length from that
-            if radius != 0:
-                length = round((amount / (math.pi * radius ** 2)) / 1000, 2)
-            else:
-                length = 0
-
+            length = round((amount / (math.pi * radius**2)) / 1000, 2) if radius != 0 else 0
             self._material_weights[build_plate_number].append(weight)
             self._material_lengths[build_plate_number].append(length)
             self._material_costs[build_plate_number].append(cost)
@@ -288,11 +284,9 @@ class PrintInformation(QObject):
     # prefix can be added to the manually added name, not the old base name
     @pyqtSlot(str, bool)
     def setJobName(self, name: str, is_user_specified_job_name = False) -> None:
-        self._is_user_specified_job_name = is_user_specified_job_name
         self._job_name = name
-        self._base_name = name.replace(self._abbr_machine + "_", "")
-        if name == "":
-            self._is_user_specified_job_name = False
+        self._base_name = name.replace(f"{self._abbr_machine}_", "")
+        self._is_user_specified_job_name = is_user_specified_job_name if name else False
         self.jobNameChanged.emit()
 
     jobNameChanged = pyqtSignal()
@@ -316,10 +310,11 @@ class PrintInformation(QObject):
         if not self._is_user_specified_job_name:
             if self._application.getInstance().getPreferences().getValue("cura/jobname_prefix") and not self._pre_sliced:
                 # Don't add abbreviation if it already has the exact same abbreviation.
-                if base_name.startswith(self._abbr_machine + "_"):
-                    self._job_name = base_name
-                else:
-                    self._job_name = self._abbr_machine + "_" + base_name
+                self._job_name = (
+                    base_name
+                    if base_name.startswith(f"{self._abbr_machine}_")
+                    else f"{self._abbr_machine}_{base_name}"
+                )
             else:
                 self._job_name = base_name
 
@@ -351,12 +346,9 @@ class PrintInformation(QObject):
         check_name = os.path.splitext(name)[0]
         filename_parts = os.path.basename(base_name).split(".")
 
-        # If it's a gcode, also always update the job name
-        is_gcode = False
-        if len(filename_parts) > 1:
-            # Only check the extension(s)
-            is_gcode = "gcode" in filename_parts[1:]
-
+        # If it's a gcode, also always update the job name, only check the extension(s)
+        is_gcode = "gcode" in filename_parts[1:] if len(filename_parts) > 1 else False
+        
         # if this is a profile file, always update the job name
         # name is "" when I first had some meshes and afterwards I deleted them so the naming should start again
         is_empty = check_name == ""
@@ -370,10 +362,7 @@ class PrintInformation(QObject):
             except MimeTypeNotFoundError:
                 Logger.warning(f"Unsupported Mime Type Database file extension {name}")
 
-            if data is not None and check_name is not None:
-                self._base_name = data
-            else:
-                self._base_name = ""
+            self._base_name = data if data is not None and check_name is not None else ""
 
             # Strip the old "curaproject" extension from the name
             OLD_CURA_PROJECT_EXT = ".curaproject"
@@ -423,11 +412,11 @@ class PrintInformation(QObject):
             build_plate = self._active_build_plate
 
         # Construct the 0-time message
-        temp_message = {}
         if build_plate not in self._print_times_per_feature:
             self._print_times_per_feature[build_plate] = {}
-        for key in self._print_times_per_feature[build_plate].keys():
-            temp_message[key] = 0
+        temp_message = {
+            key: 0 for key in self._print_times_per_feature[build_plate].keys()
+        }
         temp_material_amounts = [0.]
 
         self._onPrintDurationMessage(build_plate, temp_message, temp_material_amounts)

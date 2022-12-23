@@ -25,8 +25,7 @@ def process_obj(input_file: str, output_file: str) -> None:
 
 def trim_lines(in_obj: TextIO, out_obj: TextIO) -> None:
     for line in in_obj:
-        line = trim_line(line)
-        if line:
+        if line := trim_line(line):
             out_obj.write(line + "\n")
 
 
@@ -49,7 +48,7 @@ def trim_face(values: List[str]) -> str:
     # f 15/15/17 15/15/17 14/14/17 -> f 15/15 15/15 14/14
     for i, coordinates in enumerate(values[1:]):
         v, vt = coordinates.split("/")[:2]
-        values[i + 1] = v + "/" + vt
+        values[i + 1] = f"{v}/{vt}"
 
     return " ".join(values)
 
@@ -89,7 +88,7 @@ def merge_duplicate_vt(in_obj, out_obj):
             continue
 
         if line[:2] == "vt":
-            if line in vt_to_index.keys():
+            if line in vt_to_index:
                 # vt with same value has already been written
                 # this points the current vt index to the one that has been written
                 vt_index_mapping[vt_index] = vt_to_index[line]
@@ -116,10 +115,10 @@ def merge_duplicate_vt(in_obj, out_obj):
             v, vt = coordinates.split("/")[:2]
             vt = int(vt)
 
-            if vt in vt_index_mapping.keys():
+            if vt in vt_index_mapping:
                 vt = vt_index_mapping[vt]
 
-            values[i + 1] = v + "/" + str(vt)
+            values[i + 1] = f"{v}/{str(vt)}"
 
         out_obj.write(" ".join(values) + "\n")
 

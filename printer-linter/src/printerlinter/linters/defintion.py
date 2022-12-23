@@ -19,15 +19,11 @@ class Definition(Linter):
 
     @property
     def base_def(self):
-        if "fdmextruder" in self._definitions:
-            return "fdmextruder"
-        return "fdmprinter"
+        return "fdmextruder" if "fdmextruder" in self._definitions else "fdmprinter"
 
     def check(self) -> Iterator[Diagnostic]:
         if self._settings["checks"].get("diagnostic-definition-redundant-override", False):
-            for check in self.checkRedefineOverride():
-                yield check
-
+            yield from self.checkRedefineOverride()
         # Add other which will yield Diagnostic's
         # TODO: A check to determine if the user set value is with the min and max value defined in the parent and doesn't trigger a warning
         # TODO: A check if the key exist in the first place
@@ -102,11 +98,11 @@ class Definition(Linter):
                     if is_number and child_key in ("default_value", "value"):
                         try:
                             v = str(float(child_value))
-                        except:
+                        except Exception:
                             v = child_value
                         try:
                             cv = str(float(check_value))
-                        except:
+                        except Exception:
                             cv = check_value
                     else:
                         v = child_value

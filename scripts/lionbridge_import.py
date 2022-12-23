@@ -29,13 +29,21 @@ def lionbridge_import(source: str) -> None:
         for file_pot in (file for file in os.listdir(directory) if file.endswith(".pot")):
             source_file = file_pot[:-4] #Strip extension.
             if source_file in cura_files:
-                destination_file = os.path.join(destination_cura(), language.replace("-", "_"), source_file + ".po")
+                destination_file = os.path.join(
+                    destination_cura(),
+                    language.replace("-", "_"),
+                    f"{source_file}.po",
+                )
                 print("Merging", source_file, "(Cura) into", destination_file)
             elif source_file in uranium_files:
-                destination_file = os.path.join(destination_uranium(), language.replace("-", "_"), source_file + ".po")
+                destination_file = os.path.join(
+                    destination_uranium(),
+                    language.replace("-", "_"),
+                    f"{source_file}.po",
+                )
                 print("Merging", source_file, "(Uranium) into", destination_file)
             else:
-                raise Exception("Unknown file: " + source_file + "... Is this Cura or Uranium?")
+                raise Exception(f"Unknown file: {source_file}... Is this Cura or Uranium?")
 
             with io.open(os.path.join(directory, file_pot), encoding = "utf8") as f:
                 source_str = f.read()
@@ -61,15 +69,16 @@ def destination_uranium() -> str:
     """
     try:
         import UM
-    except ImportError:
+    except ImportError as e:
         relative_path = os.path.join(__file__, "..", "..", "..", "Uranium", "resources", "i18n", "uranium.pot")
         absolute_path = os.path.abspath(relative_path)
-        if os.path.exists(absolute_path):
-            absolute_path = os.path.abspath(os.path.join(absolute_path, ".."))
-            print("Uranium is at:", absolute_path)
-            return absolute_path
-        else:
-            raise Exception("Can't find Uranium. Please put UM on the PYTHONPATH or put the Uranium folder next to the Cura folder. Looked for: " + absolute_path)
+        if not os.path.exists(absolute_path):
+            raise Exception(
+                f"Can't find Uranium. Please put UM on the PYTHONPATH or put the Uranium folder next to the Cura folder. Looked for: {absolute_path}"
+            ) from e
+        absolute_path = os.path.abspath(os.path.join(absolute_path, ".."))
+        print("Uranium is at:", absolute_path)
+        return absolute_path
     return os.path.abspath(os.path.join(UM.__file__, "..", "..", "resources", "i18n"))
 
 

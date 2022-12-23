@@ -111,8 +111,7 @@ class MachineAction(QObject, PluginObject):
         path = os.path.join(plugin_path, self._qml_url)
 
         from cura.CuraApplication import CuraApplication
-        view = CuraApplication.getInstance().createQmlComponent(path, {"manager": self})
-        return view
+        return CuraApplication.getInstance().createQmlComponent(path, {"manager": self})
 
     @pyqtProperty(QUrl, constant = True)
     def qmlPath(self) -> "QUrl":

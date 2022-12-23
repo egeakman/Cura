@@ -21,7 +21,7 @@ class NetworkingUtil(QObject):
         try:
             socket.inet_pton(socket.AF_INET, address)
             result = True
-        except:
+        except Exception:
             result = False
         return result
 
@@ -31,7 +31,7 @@ class NetworkingUtil(QObject):
         try:
             socket.inet_pton(socket.AF_INET6, address)
             result = True
-        except:
+        except Exception:
             result = False
         return result
 

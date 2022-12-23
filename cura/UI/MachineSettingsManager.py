@@ -63,13 +63,12 @@ class MachineSettingsManager(QObject):
         has_materials = global_stack.getProperty("machine_gcode_flavor", "value") != "UltiGCode"
 
         material_node = None
+        
         if has_materials:
             global_stack.setMetaDataEntry("has_materials", True)
-        else:
-            # The metadata entry is stored in an ini, and ini files are parsed as strings only.
-            # Because any non-empty string evaluates to a boolean True, we have to remove the entry to make it False.
-            if "has_materials" in global_stack.getMetaData():
-                global_stack.removeMetaDataEntry("has_materials")
+            
+        elif "has_materials" in global_stack.getMetaData(): # The metadata entry is stored in an ini, and ini files are parsed as strings only.
+            global_stack.removeMetaDataEntry("has_materials") # Because any non-empty string evaluates to a boolean True, we have to remove the entry to make it False.
 
         # set materials
         for position, extruder in enumerate(global_stack.extruderList):

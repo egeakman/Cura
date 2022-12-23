@@ -73,10 +73,7 @@ def diagnoseIssuesWithFile(file: Path, settings: dict) -> List[Diagnostic]:
     """ For file, runs all diagnostic checks in settings and returns a list of diagnostics """
     linter = factory.getLinter(file, settings)
 
-    if not linter:
-        return []
-
-    return list(filter(lambda d: d is not None, linter.check()))
+    return list(filter(lambda d: d is not None, linter.check())) if linter else []
 
 
 def applyFixesToFile(file, settings, full_body_check) -> None:
@@ -102,7 +99,7 @@ def applyFormattingToFile(file: Path, settings) -> None:
         formatter = DefJsonFormatter(settings)
         formatter.formatFile(file)
 
-    if ext == "inst.cfg":
+    elif ext == "inst.cfg":
         formatter = InstCfgFormatter(settings)
         formatter.formatFile(file)
 

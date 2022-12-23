@@ -52,8 +52,7 @@ class InvalidImportsChecker:
             # loop through each line in file
             for line_i, line in enumerate(inputFile, 1):
                 # check if we have a regex match
-                match = self.REGEX.search(line)
-                if match:
+                if match := self.REGEX.search(line):
                     path = os.path.relpath(file_path)
                     print("{path}:{line_i}:{match}".format(path=path, line_i=line_i, match=match.group(1)))
                     passed = False

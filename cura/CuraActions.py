@@ -48,8 +48,7 @@ class CuraActions(QObject):
         """Reset camera position and direction to default"""
 
         scene = cura.CuraApplication.CuraApplication.getInstance().getController().getScene()
-        camera = scene.getActiveCamera()
-        if camera:
+        if camera := scene.getActiveCamera():
             diagonal_size = cura.CuraApplication.CuraApplication.getInstance().getBuildVolume().getDiagonalSize()
             camera.setPosition(Vector(-80, 250, 700) * diagonal_size / 375)
             camera.setPerspective(True)
@@ -68,8 +67,7 @@ class CuraActions(QObject):
                 parent_node = current_node.getParent()
 
             # Find out where the bottom of the object is
-            bbox = current_node.getBoundingBox()
-            if bbox:
+            if bbox := current_node.getBoundingBox():
                 center_y = current_node.getWorldPosition().y - bbox.bottom
             else:
                 center_y = 0
@@ -167,10 +165,8 @@ class CuraActions(QObject):
             parent_node = node  # Find the parent node to change instead
             while parent_node.getParent() != root:
                 parent_node = cast(SceneNode, parent_node.getParent())
-
-            for single_node in BreadthFirstIterator(parent_node):  # type: ignore #Ignore type error because iter() should get called automatically by Python syntax.
-                nodes_to_change.append(single_node)
-
+            nodes_to_change.extend(iter(BreadthFirstIterator(parent_node))) # type: ignore #Ignore type error because iter() should get called automatically by Python syntax.
+            
         if not nodes_to_change:
             Logger.log("d", "Nothing to change.")
             return

@@ -81,7 +81,7 @@ class SingleInstance:
 
     def __readCommands(self, connection: QLocalSocket) -> None:
         line = connection.readLine()
-        while len(line) != 0:    # There is also a .canReadLine()
+        while len(line) != 0: # There is also a .canReadLine()
             try:
                 payload = json.loads(str(line, encoding = "ascii").strip())
                 command = payload["command"]
@@ -107,7 +107,7 @@ class SingleInstance:
                     connection.close()
 
                 else:
-                    Logger.log("w", "Received an unrecognized command " + str(command))
+                    Logger.log("w", f"Received an unrecognized command {str(command)}")
             except json.decoder.JSONDecodeError as ex:
                 Logger.log("w", "Unable to parse JSON command '%s': %s", line, repr(ex))
             line = connection.readLine()

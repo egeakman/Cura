@@ -203,7 +203,7 @@ class CrashHandler:
             from UM.Application import Application
             self.cura_version = Application.getInstance().getVersion()
             self.cura_locale = Application.getInstance().getPreferences().getValue("general/language")
-        except:
+        except Exception:
             self.cura_version = catalog.i18nc("@label unknown version of Cura", "Unknown")
             self.cura_locale = "??_??"
 
@@ -211,8 +211,7 @@ class CrashHandler:
         self.data["os"] = {"type": platform.system(), "version": platform.version()}
         self.data["qt_version"] = QT_VERSION_STR
         self.data["pyqt_version"] = PYQT_VERSION_STR
-        self.data["locale_os"] = locale.getlocale(locale.LC_MESSAGES)[0] if hasattr(locale, "LC_MESSAGES") else \
-        locale.getdefaultlocale()[0]
+        self.data["locale_os"] = locale.getlocale(locale.LC_MESSAGES)[0] if hasattr(locale, "LC_MESSAGES") else locale.getdefaultlocale()[0]
         self.data["locale_cura"] = self.cura_locale
 
         try:
@@ -222,7 +221,7 @@ class CrashHandler:
                 plugin_id: plugins.getMetaData(plugin_id)["plugin"]["version"]
                 for plugin_id in plugins.getInstalledPlugins() if not plugins.isBundledPlugin(plugin_id)
             }
-        except:
+        except Exception:
             self.data["plugins"] = {"[FAILED]": "0.0.0"}
 
         crash_info = "<b>" + catalog.i18nc("@label Cura version number", "Cura version") + ":</b> " + str(self.cura_version) + "<br/>"
@@ -285,7 +284,7 @@ class CrashHandler:
             else:
                 active_machine_definition_id = global_stack.definition.getId()
                 active_machine_manufacturer = global_stack.definition.getMetaDataEntry("manufacturer", "unknown")
-        except:
+        except Exception:
             pass
 
         if with_sentry_sdk:
@@ -327,19 +326,14 @@ class CrashHandler:
         if len(filepath_directory_split) > 1:
             filepath = filepath_directory_split[1]
         directory, filename = os.path.split(filepath)
-        line = ""
-        if len(module_split) > 1:
-            line = int(module_split[1].lstrip("line "))
-        function = ""
-        if len(module_split) > 2:
-            function = module_split[2].lstrip("in ")
-        code = ""
-        if len(module) > 1:
-            code = module[1].lstrip(" ")
+        line = int(module_split[1].lstrip("line ")) if len(module_split) > 1 else ""
+        function = module_split[2].lstrip("in ") if len(module_split) > 2 else ""
+        code = module[1].lstrip(" ") if len(module) > 1 else ""
 
         # Using this workaround for a cross-platform path splitting
         split_path = []
         folder_name = ""
+
         # Split until reach folder "cura"
         while folder_name != "cura":
             directory, folder_name = os.path.split(directory)
@@ -368,14 +362,23 @@ class CrashHandler:
                     except json.decoder.JSONDecodeError:
                         # Not throw new exceptions
                         Logger.logException("e", "Failed to parse plugin.json for plugin %s", name)
-            except:
+            except Exception:
                 # Not throw new exceptions
                 pass
 
-        exception_dict = dict()
-        exception_dict["traceback"] = {"summary": summary, "full_trace": trace}
-        exception_dict["location"] = {"path": filepath, "file": filename, "function": function, "code": code, "line": line,
-                                      "module_name": module_name, "version": module_version, "is_plugin": isPlugin}
+        exception_dict = {
+            "traceback": {"summary": summary, "full_trace": trace},
+            "location": {
+                "path": filepath,
+                "file": filename,
+                "function": function,
+                "code": code,
+                "line": line,
+                "module_name": module_name,
+                "version": module_version,
+                "is_plugin": isPlugin,
+            },
+        }
         self.data["exception"] = exception_dict
 
         if with_sentry_sdk:
@@ -438,15 +441,15 @@ class CrashHandler:
             except Exception as e:  # We don't want any exception to cause problems
                 Logger.logException("e", "An exception occurred while trying to send crash report")
                 if not self.has_started:
-                    print("An exception occurred while trying to send crash report: %s" % e)
+                    print(f"An exception occurred while trying to send crash report: {e}")
         else:
             msg = "SentrySDK is not available and the report could not be sent."
             Logger.logException("e", msg)
             if not self.has_started:
                 print(msg)
-                print("Exception type: {}".format(self.exception_type))
-                print("Value: {}".format(self.value))
-                print("Traceback: {}".format(self.traceback))
+                print(f"Exception type: {self.exception_type}")
+                print(f"Value: {self.value}")
+                print(f"Traceback: {self.traceback}")
 
         os._exit(1)
 

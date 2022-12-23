@@ -80,4 +80,11 @@ class DefJsonFormatter(FileFormatter):
         @param sort_priority: A mapping from string keys to alternative strings to be used instead when sorting.
         @return: A dictionary sorted by it's top level keys
         """
-        return OrderedDict(sorted(ordered_dictionary.items(), key=lambda x: sort_priority[x[0]] if str(x[0]) in sort_priority.keys() else str(x[0])))
+        return OrderedDict(
+            sorted(
+                ordered_dictionary.items(),
+                key=lambda x: sort_priority[x[0]]
+                if str(x[0]) in sort_priority
+                else str(x[0]),
+            )
+        )

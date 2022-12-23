@@ -42,11 +42,12 @@ class MultiplyObjectsJob(Job):
         processed_nodes = []  # type: List[SceneNode]
         nodes = []
 
-        fixed_nodes = []
-        for node_ in DepthFirstIterator(root):
-            # Only count sliceable objects
-            if node_.callDecoration("isSliceable"):
-                fixed_nodes.append(node_)
+        fixed_nodes = [
+            node_
+            for node_ in DepthFirstIterator(root)
+            if node_.callDecoration("isSliceable") # Only count sliceable objects
+        ]
+        
         nodes_to_add_without_arrange = []
         for node in self._objects:
             # If object is part of a group, multiply group

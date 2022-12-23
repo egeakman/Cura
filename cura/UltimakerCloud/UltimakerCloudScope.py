@@ -30,7 +30,5 @@ class UltimakerCloudScope(DefaultUserAgentScope):
             Logger.debug("User is not logged in for Cloud API request to {url}".format(url = request.url().toDisplayString()))
             return
 
-        header_dict = {
-            "Authorization": "Bearer {}".format(token)
-        }
+        header_dict = {"Authorization": f"Bearer {token}"}
         self.addHeaders(request, header_dict)

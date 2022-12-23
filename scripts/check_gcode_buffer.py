@@ -60,9 +60,7 @@ def get_value_dict(parts: List[str]) -> Dict[str, str]:
 
 def calc_distance(pos1, pos2):
     delta = {k: pos1[k] - pos2[k] for k in pos1}
-    distance = 0
-    for value in delta.values():
-        distance += value ** 2
+    distance = sum(value ** 2 for value in delta.values())
     distance = math.sqrt(distance)
     return distance
 
@@ -100,7 +98,7 @@ def calc_intersection_distance(initial_feedrate: float, final_feedrate: float, a
 
     if acceleration == 0:
         return 0
-    return (2 * acceleration * distance - initial_feedrate * initial_feedrate + final_feedrate * final_feedrate) / (4 * acceleration)
+    return (2 * acceleration * distance - initial_feedrate**2 + final_feedrate**2 ) / (4 * acceleration)
 
 
 def calc_max_allowable_speed(acceleration: float, target_velocity: float, distance: float) -> float:
@@ -109,7 +107,7 @@ def calc_max_allowable_speed(acceleration: float, target_velocity: float, distan
     distance.
     """
 
-    return math.sqrt(target_velocity * target_velocity - 2 * acceleration * distance)
+    return math.sqrt(target_velocity**2 - 2 * acceleration * distance)
 
 
 class Command:
@@ -180,9 +178,9 @@ class Command:
         if self._is_comment or self._is_empty:
             return self._cmd_str
 
-        info = "t=%s" % (self.estimated_exec_time)
+        info = f"t={self.estimated_exec_time}"
 
-        return self._cmd_str.strip() + " ; --- " + info + os.linesep
+        return f"{self._cmd_str.strip()} ; --- {info}{os.linesep}"
 
     def parse(self) -> None:
         """Estimates the execution time of this command and calculates the state after this command is executed."""
@@ -204,7 +202,7 @@ class Command:
 
         func = self._cmd_process_function_map.get(cmd_code)
         if func is None:
-            print("!!! no handle function for command type [%s]" % cmd_code)
+            print(f"!!! no handle function for command type [{cmd_code}]")
             return
         func(cmd_num, parts)
 
@@ -223,7 +221,7 @@ class Command:
             parts = ["G1", "E" + str(buf.current_position[3] + 25)]
 
         # G0 and G1: Move
-        if cmd_num in (0, 1):
+        if cmd_num in {0, 1}:
             # Move
             if len(parts) > 0:
                 value_dict = get_value_dict(parts[1:])
@@ -308,9 +306,8 @@ class Command:
             # Pnnn is time to wait in milliseconds (P0 wait until all previous moves are finished)
             cmd, num = get_code_and_num(parts[1])
             num = float(num)
-            if cmd == "P":
-                if num > 0:
-                    self.estimated_exec_time = num
+            if cmd == "P" and num > 0:
+                self.estimated_exec_time = num
 
     def _handle_m(self, cmd_num: int, parts: List[str]) -> None:
         self.estimated_exec_time = 0.0
@@ -321,12 +318,12 @@ class Command:
             buf.max_z_feedrate = value_dict.get("Z", buf.max_z_feedrate)
 
         # M204: Set default acceleration. Assume 0 execution time.
-        if cmd_num == 204:
+        elif cmd_num == 204:
             value_dict = get_value_dict(parts[1:])
             buf.acceleration = value_dict.get("S", buf.acceleration)
 
         # M205: Advanced settings, we only set jerks for Griffin. Assume 0 execution time.
-        if cmd_num == 205:
+        elif cmd_num == 205:
             value_dict = get_value_dict(parts[1:])
             buf.max_xy_jerk = value_dict.get("XY", buf.max_xy_jerk)
             buf.max_z_jerk = value_dict.get("Z", buf.max_z_jerk)
@@ -343,7 +340,7 @@ class CommandBuffer:
                  buffer_size: int = DEFAULT_BUFFER_SIZE
                  ) -> None:
         self._all_lines = all_lines
-        self._all_commands = list()
+        self._all_commands = []
 
         self._buffer_filling_rate = buffer_filling_rate  # type: float
         self._buffer_size = buffer_size  # type: int
@@ -366,8 +363,8 @@ class CommandBuffer:
         self.previous_feedrate = [0, 0, 0, 0]
         self.previous_nominal_feedrate = 0
 
-        print("Command speed: %s" % buffer_filling_rate)
-        print("Code Limit: %s" % self._code_count_limit)
+        print(f"Command speed: {buffer_filling_rate}")
+        print(f"Code Limit: {self._code_count_limit}")
 
         self._bad_frame_ranges = []
 
@@ -376,12 +373,11 @@ class CommandBuffer:
         cmd0_idx = 0
         total_frame_time = 0.0
         cmd_count = 0
-        for idx, line in enumerate(self._all_lines):
+        for line in self._all_lines:
             cmd = Command(line)
             cmd.parse()
-            if not cmd.is_command:
-                continue
-            self._all_commands.append(cmd)
+            if cmd.is_command:
+                self._all_commands.append(cmd)
 
         #Second pass: Reverse kernel.
         kernel_commands = [None, None, None]
@@ -412,12 +408,11 @@ class CommandBuffer:
                 current = None
                 continue #Not a movement command.
 
-            if previous:
+            if previous and (previous._recalculate or current._recalculate):
                 #Recalculate if current command entry or exit junction speed has changed.
-                if previous._recalculate or current._recalculate:
-                    #Note: Entry and exit factors always >0 by all previous logic operators.
-                    previous.calculate_trapezoid(previous._entry_speed / previous._nominal_feedrate, current._entry_speed / previous._nominal_feedrate)
-                    previous._recalculate = False
+                #Note: Entry and exit factors always >0 by all previous logic operators.
+                previous.calculate_trapezoid(previous._entry_speed / previous._nominal_feedrate, current._entry_speed / previous._nominal_feedrate)
+                previous._recalculate = False
 
             previous = current
         if current is not None and current.estimated_exec_time >= 0:
@@ -495,19 +490,21 @@ class CommandBuffer:
         #reset, maximised and reverse planned by the reverse planner. If nominal
         #length is set, max junction speed is guaranteed to be reached. No need
         #to recheck.
-        if not previous._nominal_length:
-            if previous._entry_speed < current._entry_speed:
-                entry_speed = min(current._entry_speed, calc_max_allowable_speed(-previous._acceleration, previous._entry_speed, previous._distance))
+        if (
+            not previous._nominal_length
+            and previous._entry_speed < current._entry_speed
+        ):
+            entry_speed = min(current._entry_speed, calc_max_allowable_speed(-previous._acceleration, previous._entry_speed, previous._distance))
 
-                if current._entry_speed != entry_speed:
-                    current._entry_speed = entry_speed
-                    current._recalculate = True
+            if current._entry_speed != entry_speed:
+                current._entry_speed = entry_speed
+                current._recalculate = True
 
     def to_file(self, file_name: str) -> None:
         all_lines = [str(c) for c in self._all_commands]
         with open(file_name, "w", encoding = "utf-8") as f:
             f.writelines(all_lines)
-            f.write(";---TOTAL ESTIMATED TIME:" + str(self.total_time))
+            f.write(f";---TOTAL ESTIMATED TIME:{str(self.total_time)}")
 
     def report(self) -> None:
         for item in self._bad_frame_ranges:
@@ -521,14 +518,13 @@ class CommandBuffer:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or 3 < len(sys.argv):
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("Usage: <input g-code> [output g-code]")
         sys.exit(1)
+        
     in_filename = sys.argv[1]
-    out_filename = None
-    if len(sys.argv) == 3:
-        out_filename = sys.argv[2]
-
+    out_filename = sys.argv[2] if len(sys.argv) == 3 else None
+    
     with open(in_filename, "r", encoding = "utf-8") as f:
         all_lines = f.readlines()
 

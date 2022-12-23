@@ -5,17 +5,17 @@ def getValue(line: str, key: str, default = None):
     """Convenience function that finds the value in a line of g-code.
     When requesting key = x from line "G1 X100" the value 100 is returned.
     """
-    if not key in line or (';' in line and line.find(key) > line.find(';')):
+    if key not in line or (';' in line and line.find(key) > line.find(';')):
         return default
     sub_part = line[line.find(key) + 1:]
     m = re.search('^-?[0-9]+\.?[0-9]*', sub_part)
     if m is None:
         return default
     try:
-        return int(m.group(0))
+        return int(m[0])
     except ValueError: #Not an integer.
         try:
-            return float(m.group(0))
+            return float(m[0])
         except ValueError: #Not a number at all.
             return default
 
