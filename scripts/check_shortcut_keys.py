@@ -7,10 +7,10 @@ import os
 import sys
 from typing import Optional
 
-COLOR_WARNING = '\033[93m'
-COLOR_ENDC = '\033[0m'
+COLOR_WARNING = "\033[93m"
+COLOR_ENDC = "\033[0m"
 
-regex_patter = '(&[\w])' #"&[a-zA-Z0-9]" - Search char '&' and at least one character after it
+regex_patter = r"(&[\w])"  # "&[a-zA-Z0-9]" - Search char '&' and at least one character after it
 
 # Directory where this python file resides
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -26,13 +26,13 @@ class ShortcutKeysChecker:
         """
         Checks if the given file has duplicate shortcut keys.
         """
-        with open(filename, "r", encoding = "utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             all_lines = f.readlines()
 
         all_lines = [l.strip() for l in all_lines]
         shortcut_dict = collections.defaultdict(dict)
         found_ctxt = False
-        current_data = dict()
+        current_data = {}
         current_field = None
         start_line = None
 
@@ -75,9 +75,7 @@ class ShortcutKeysChecker:
 
     def _process_translation(self, shortcut_dict: dict, data_dict: dict, start_line: int) -> None:
         # Only check the ones with shortcuts
-        msg = data_dict[self.MSGID]
-        if data_dict[self.MSGSTR]:
-            msg = data_dict[self.MSGSTR]
+        msg = data_dict[self.MSGSTR] or data_dict[self.MSGID]
         shortcut_key = self._get_shortcut_key(msg)
         if shortcut_key is None:
             return
@@ -85,15 +83,17 @@ class ShortcutKeysChecker:
         msg_section = data_dict[self.MSGCTXT]
         keys_dict = shortcut_dict[msg_section]
         if shortcut_key not in keys_dict:
-            keys_dict[shortcut_key] = {"shortcut_key": shortcut_key,
-                                       "section": msg_section,
-                                       "existing_lines": dict(),
-                                       }
+            keys_dict[shortcut_key] = {
+                "shortcut_key": shortcut_key,
+                "section": msg_section,
+                "existing_lines": {},
+            }
         existing_data_dict = keys_dict[shortcut_key]["existing_lines"]
-        existing_data_dict[start_line] = {"message": msg,
-                                          }
+        existing_data_dict[start_line] = {
+            "message": msg,
+        }
 
-    def _get_shortcut_key(self, text: str) -> Optional[str]:
+    def _get_shortcut_key(self, text: str) -> str | None:
         key = None
         if text.count("&") == 1:
             idx = text.find("&") + 1
@@ -113,11 +113,11 @@ class ShortcutKeysChecker:
                 has_duplicates = True
 
                 print("")
-                print("The following messages have the same shortcut key '%s':" % shortcut_key)
-                print("  shortcut: '%s'" % data_dict["shortcut_key"])
-                print("  section : '%s'" % data_dict["section"])
+                print(f"The following messages have the same shortcut key '{shortcut_key}':")
+                print(f"""  shortcut: '{data_dict["shortcut_key"]}'""")
+                print(f"""  section : '{data_dict["section"]}'""")
+                relative_filename = (filename.rsplit("..", 1)[-1])[1:]
                 for line, msg in data_dict["existing_lines"].items():
-                    relative_filename = (filename.rsplit("..", 1)[-1])[1:]
                     print(" - [%s] L%7d : '%s'" % (relative_filename, line, msg["message"]))
 
         return has_duplicates
@@ -127,13 +127,13 @@ if __name__ == "__main__":
     checker = ShortcutKeysChecker()
     all_dirnames = [""]
     for _, dirnames, _ in os.walk(os.path.join(SCRIPT_DIR, "..", "resources", "i18n")):
-        all_dirnames += [dn for dn in dirnames]
+        all_dirnames += list(dirnames)
         break
 
     found_duplicates = False
     for dirname in all_dirnames:
-        file_name = "cura.pot" if not dirname else "cura.po"
+        file_name = "cura.po" if dirname else "cura.pot"
         file_path = os.path.join(SCRIPT_DIR, "..", "resources", "i18n", dirname, file_name)
         found_duplicates = found_duplicates or checker.has_duplicates(file_path)
 
-    sys.exit(0 if not found_duplicates else 1)
+    sys.exit(1 if found_duplicates else 0)
